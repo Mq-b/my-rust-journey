@@ -1,0 +1,21 @@
+[package]
+name = "rust-learning"
+version = "0.1.0"
+edition = "2024"
+authors = ["Your Name <your.email@example.com>"]
+description = "A Rust learning project with multiple examples"
+
+# 项目可以是 library 或 binary，这里配置为 library 更适合学习和示例
+[lib]
+name = "rust_learning"
+path = "src/lib.rs"
+
+# 主程序入口（可选）
+[[bin]]
+name = "rust-learning"
+path = "src/main.rs"
+
+[dependencies]
+# 添加一些常用的学习依赖
+# serde = { version = "1.0", features = ["derive"] }
+# tokio = { version = "1", features = ["full"] }
