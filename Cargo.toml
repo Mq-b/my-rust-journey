@@ -16,6 +16,10 @@ name = "rust-learning"
 path = "src/main.rs"
 
 [dependencies]
-# 添加一些常用的学习依赖
-# serde = { version = "1.0", features = ["derive"] }
-# tokio = { version = "1", features = ["full"] }
+anyhow = "1.0.101"
+zxing-cpp = { version = "0.5.0", features = ["bundled", "image"] }
+image = "0.25"
+show-image = "0.14"
+
+[profile.dev.package.zxing-cpp]
+opt-level = 3
