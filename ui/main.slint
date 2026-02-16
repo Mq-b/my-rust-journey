@@ -1,0 +1,117 @@
+import { Button, LineEdit, ComboBox, VerticalBox, HorizontalBox } from "std-widgets.slint";
+import { MessageDialog } from "dialog.slint";
+
+// 主窗口
+export component MainWindow inherits Window {
+    in-out property <string> name-input: "";
+    in-out property <string> selected-option: "选项1";
+    in-out property <string> dialog-message: "";
+
+    width: 500px;
+    height: 400px;
+    title: "Slint Demo - 表单示例";
+
+    VerticalBox {
+        padding: 20px;
+        spacing: 15px;
+
+        // 标题
+        Text {
+            text: "表单示例";
+            font-size: 24px;
+            font-weight: 700;
+            horizontal-alignment: center;
+        }
+
+        // 输入框区域
+        HorizontalBox {
+            spacing: 10px;
+
+            Text {
+                text: "姓名:";
+                vertical-alignment: center;
+                min-width: 80px;
+            }
+
+            LineEdit {
+                text <=> name-input;
+                placeholder-text: "请输入您的姓名";
+            }
+        }
+
+        // 下拉选择框区域
+        HorizontalBox {
+            spacing: 10px;
+
+            Text {
+                text: "选择:";
+                vertical-alignment: center;
+                min-width: 80px;
+            }
+
+            ComboBox {
+                model: ["选项1", "选项2", "选项3", "选项4"];
+                current-value <=> selected-option;
+            }
+        }
+
+        // 显示当前值
+        Rectangle {
+            background: #e8f4f8;
+            border-radius: 5px;
+            height: 100px;
+
+            VerticalLayout {
+                padding: 10px;
+                spacing: 5px;
+
+                Text {
+                    text: "当前输入:";
+                    font-weight: 600;
+                }
+
+                Text {
+                    text: "姓名: " + name-input;
+                    color: #0066cc;
+                }
+
+                Text {
+                    text: "选择: " + selected-option;
+                    color: #0066cc;
+                }
+            }
+        }
+
+        // 按钮区域
+        HorizontalBox {
+            spacing: 10px;
+            alignment: center;
+
+            Button {
+                text: "显示弹窗";
+                primary: true;
+
+                clicked => {
+                    dialog-message = "您输入的姓名是: " + name-input + "\n选择的是: " + selected-option;
+                    dialog.show();
+                }
+            }
+
+            Button {
+                text: "清空";
+
+                clicked => {
+                    name-input = "";
+                    selected-option = "选项1";
+                }
+            }
+        }
+    }
+
+    // 弹窗实例
+    dialog := MessageDialog {
+        x: (root.width - self.width) / 2;
+        y: (root.height - self.height) / 2;
+        message: dialog-message;
+    }
+}
