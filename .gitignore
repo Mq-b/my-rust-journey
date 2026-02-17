@@ -2,3 +2,5 @@
 /build
 /.vscode
 /.claude
+out.png
+barcode_config.json

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- 背景 -->
+  <rect width="64" height="64" rx="10" fill="#1a73e8"/>
+
+  <!-- 条码竖条（白色，宽窄交替模拟条码） -->
+  <rect x="8"  y="14" width="3" height="36" fill="white"/>
+  <rect x="13" y="14" width="5" height="36" fill="white"/>
+  <rect x="20" y="14" width="2" height="36" fill="white"/>
+  <rect x="24" y="14" width="4" height="36" fill="white"/>
+  <rect x="30" y="14" width="2" height="36" fill="white"/>
+  <rect x="34" y="14" width="5" height="36" fill="white"/>
+  <rect x="41" y="14" width="3" height="36" fill="white"/>
+  <rect x="46" y="14" width="2" height="36" fill="white"/>
+  <rect x="50" y="14" width="6" height="36" fill="white"/>
+</svg>

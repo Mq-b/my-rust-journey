@@ -5,6 +5,8 @@ edition = "2024"
 authors = ["Your Name <Mq-b@qq.com>"]
 description = "A Rust learning project with multiple examples"
 
+[package.metadata.windows_subsystem]
+windows = "windows"
 # 项目可以是 library 或 binary，这里配置为 library 更适合学习和示例
 [lib]
 name = "rust_learning"
@@ -21,8 +23,13 @@ zxing-cpp = { version = "0.5.0", features = ["bundled", "image"] }
 image = "0.25"
 show-image = "0.14"
 slint = "1.0.0"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+arboard = "3"
+png = "0.18.1"
 
 [build-dependencies]
+embed-resource = "1.0.0"
 slint-build = "1.0.0"
 
 [profile.dev.package.zxing-cpp]

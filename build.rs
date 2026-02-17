@@ -1,3 +1,4 @@
 fn main() {
-    slint_build::compile("ui/main.slint").unwrap();
+    embed_resource::compile("./icon.rc");
+    slint_build::compile("ui/barcode.slint").unwrap();
 }

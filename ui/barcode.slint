@@ -1,0 +1,197 @@
+import { Button, LineEdit, ComboBox, VerticalBox, HorizontalBox } from "std-widgets.slint";
+
+export component BarcodeWindow inherits Window {
+    in-out property <string> content: "A06975H91015UN24";
+    in-out property <int> format-index: 0;
+    in-out property <int> scale-index: 1;
+    in-out property <int> rotate-index: 0;
+    in-out property <int> columns-index: 1;
+    in-out property <int> eclevel-index: 6;
+    in-out property <string> status: "就绪，点击生成条码";
+    in-out property <image> preview;
+    in-out property <bool> has-preview: false;
+    in-out property <string> toast-message: "";
+    in-out property <bool> toast-visible: false;
+
+    callback generate();
+    callback copy-to-clipboard();
+
+    width: 520px;
+    height: 560px;
+    title: "条码生成器";
+    icon: @image-url("../assets/icon.svg");
+
+    VerticalBox {
+        padding: 12px;
+        spacing: 8px;
+
+        // 标题
+        Text {
+            text: "条码生成器";
+            font-size: 16px;
+            font-weight: 700;
+            horizontal-alignment: center;
+        }
+
+        // 内容输入（占满整行）
+        LineEdit {
+            text <=> content;
+            placeholder-text: "输入条码内容";
+        }
+
+        // 类型 + 缩放（同行，两侧各占一半）
+        HorizontalBox {
+            padding: 4px;
+            spacing: 8px;
+            HorizontalBox {
+                padding: 0;
+                spacing: 6px;
+                horizontal-stretch: 1;
+                Text { text: "类型:"; vertical-alignment: center; min-width: 36px; horizontal-stretch: 0; }
+                ComboBox {
+                    model: ["CompactPDF417", "PDF417", "QRCode", "DataMatrix", "Code128", "Code39", "Aztec", "EAN13"];
+                    current-index <=> format-index;
+                    horizontal-stretch: 1;
+                }
+            }
+            HorizontalBox {
+                padding: 0;
+                spacing: 6px;
+                horizontal-stretch: 1;
+                Text { text: "缩放:"; vertical-alignment: center; min-width: 36px; horizontal-stretch: 0; }
+                ComboBox {
+                    model: ["1x", "2x", "3x", "4x", "5x"];
+                    current-index <=> scale-index;
+                    horizontal-stretch: 1;
+                }
+            }
+        }
+
+        // 旋转 + 列数（同行，与上行对齐）
+        HorizontalBox {
+            padding: 4px;
+            spacing: 8px;
+            HorizontalBox {
+                padding: 0;
+                spacing: 6px;
+                horizontal-stretch: 1;
+                Text { text: "旋转:"; vertical-alignment: center; min-width: 36px; horizontal-stretch: 0; }
+                ComboBox {
+                    model: ["0°", "90°", "180°", "270°"];
+                    current-index <=> rotate-index;
+                    horizontal-stretch: 1;
+                }
+            }
+            if format-index <= 1: HorizontalBox {
+                padding: 0;
+                spacing: 6px;
+                horizontal-stretch: 1;
+                Text { text: "列数:"; vertical-alignment: center; min-width: 36px; horizontal-stretch: 0; }
+                ComboBox {
+                    model: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"];
+                    current-index <=> columns-index;
+                    horizontal-stretch: 1;
+                }
+            }
+        }
+
+        // 纠错等级（仅 PDF417/CompactPDF417）
+        if format-index <= 1: HorizontalBox {
+            padding: 4px;
+            spacing: 6px;
+            Text { text: "纠错等级:"; vertical-alignment: center; min-width: 54px; horizontal-stretch: 0; }
+            ComboBox {
+                model: ["0", "1", "2", "3", "4", "5", "6", "7", "8"];
+                current-index <=> eclevel-index;
+                min-width: 72px;
+                max-width: 120px;
+                horizontal-stretch: 0;
+            }
+        }
+
+        // 按钮区域
+        HorizontalBox {
+            padding: 0;
+            spacing: 8px;
+            Button {
+                text: "生成条码";
+                primary: true;
+                clicked => { generate(); }
+            }
+            Button {
+                text: "复制到剪贴板";
+                enabled: has-preview;
+                clicked => { copy-to-clipboard(); }
+            }
+        }
+
+        // 预览区域（拉伸填充剩余空间）
+        Rectangle {
+            background: #f0f0f0;
+            border-radius: 6px;
+            border-width: 1px;
+            border-color: #ccc;
+            vertical-stretch: 1;
+
+            if !has-preview: Text {
+                text: "预览区域";
+                color: #aaa;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+
+            if has-preview: Image {
+                source: preview;
+                image-fit: contain;
+                image-rendering: pixelated;
+                width: 100%;
+                height: 100%;
+            }
+        }
+
+        // 状态栏
+        Text {
+            text: status;
+            color: #888;
+            font-size: 12px;
+            horizontal-alignment: center;
+        }
+    }
+
+    // toast 淡入淡出透明度，跟随 toast-visible 变化并动画过渡
+    property <float> toast-alpha: toast-visible ? 1.0 : 0.0;
+    animate toast-alpha { duration: 300ms; easing: ease-out; }
+
+    // 750ms 后自动隐藏，加上 300ms 淡出共约 1s
+    Timer {
+        interval: 750ms;
+        running: toast-visible;
+        triggered => { root.toast-visible = false; }
+    }
+
+    // Toast 通知（悬浮在底部，点击关闭）
+    Rectangle {
+        opacity: root.toast-alpha;
+        x: (parent.width - 260px) / 2;
+        y: parent.height - 72px;
+        width: 260px;
+        height: 40px;
+        background: #333333;
+        border-radius: 20px;
+
+        Text {
+            text: toast-message;
+            color: #ffffff;
+            font-size: 13px;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+            width: 100%;
+            height: 100%;
+        }
+
+        TouchArea {
+            enabled: root.toast-visible;
+            clicked => { root.toast-visible = false; }
+        }
+    }
+}
