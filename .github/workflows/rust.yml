@@ -38,3 +38,29 @@ jobs:
 
       - name: Run tests
         run: cargo test --verbose
+
+      - name: Build release
+        run: cargo build --release --bins --examples --verbose
+
+      - name: Package artifacts (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          mkdir -p dist/examples
+          cp target/release/rust-learning dist/
+          cp -r assets dist/
+          find target/release/examples -maxdepth 1 -type f -executable -exec cp {} dist/examples/ \;
+
+      - name: Package artifacts (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist/examples | Out-Null
+          Copy-Item target\release\rust-learning.exe dist\
+          Copy-Item -Recurse assets dist\
+          Get-ChildItem target\release\examples\*.exe | Copy-Item -Destination dist\examples\
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: rust-learning-${{ matrix.os }}
+          path: dist/

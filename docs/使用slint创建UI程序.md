@@ -43,7 +43,10 @@ fn main() {
 ```rust
 slint::include_modules!();
 
-fn main(){}
+fn main(){
+    // BarcodeWindow 是由 ui/barcode.slint 编译生成的 barcode.rs 模块中的组件
+    let window = BarcodeWindow::new().unwrap(); 
+}
 ```
 
 实际上是包含了将 `ui/barcode.slint` 编译生成的 `barcode.rs` 模块引入到了当前的 Rust 源代码中。
