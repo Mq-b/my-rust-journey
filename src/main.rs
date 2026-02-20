@@ -4,6 +4,7 @@ mod config;
 
 use barcode::{generate_barcode, gray_to_slint_image};
 use config::{Config, load_config, save_config};
+use rfd::FileDialog;
 use std::sync::{Arc, Mutex};
 
 slint::include_modules!();
@@ -87,6 +88,44 @@ fn setup_clipboard_callback(
     });
 }
 
+fn setup_export_image_callback(
+    window: &BarcodeWindow,
+    last_gray: Arc<Mutex<Option<image::GrayImage>>>,
+) {
+    let window_weak = window.as_weak();
+
+    window.on_export_image(move || {
+        let window = window_weak.unwrap();
+        let guard = last_gray.lock().unwrap();
+        // 文件名为当前日期时间 YYYYMMDD_HHMMSS.png
+        let now = chrono::Local::now();
+        let filename = format!("barcode_{}.png", now.format("%Y%m%d_%H%M%S"));
+
+        if let Some(gray) = guard.as_ref() {
+            let msg = match FileDialog::new()
+                .add_filter("PNG Image", &["png"])
+                .set_file_name(filename)
+                .save_file()
+            {
+                Some(path) => match gray.save(&path) {
+                    Ok(_) => format!("导出成功: {}", path.display()),
+                    Err(e) => format!("导出失败: {}", e),
+                },
+                None => {
+                    // 用户取消
+                    return;
+                }
+            };
+
+            window.set_toast_message(msg.into());
+            window.set_toast_visible(true);
+        } else {
+            window.set_toast_message("没有可导出的图像".into());
+            window.set_toast_visible(true);
+        }
+    });
+}
+
 fn main() {
     let cfg = load_config();
     let window = BarcodeWindow::new().unwrap();
@@ -94,7 +133,8 @@ fn main() {
 
     let last_gray: Arc<Mutex<Option<image::GrayImage>>> = Arc::new(Mutex::new(None));
     setup_generate_callback(&window, last_gray.clone());
-    setup_clipboard_callback(&window, last_gray);
+    setup_clipboard_callback(&window, last_gray.clone());
+    setup_export_image_callback(&window, last_gray.clone());
 
     window.run().unwrap();
 }

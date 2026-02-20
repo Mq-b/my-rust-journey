@@ -62,7 +62,12 @@ pub fn generate_barcode(config: &Config) -> anyhow::Result<BarcodeResult> {
     let height = gray_image.height();
     save_png_300dpi(&gray_image, "out.png")?;
 
-    Ok(BarcodeResult { gray_image, width, height, format_name })
+    Ok(BarcodeResult {
+        gray_image,
+        width,
+        height,
+        format_name,
+    })
 }
 
 /// 将灰度图转换为 Slint 可用的图像

@@ -15,6 +15,7 @@ export component BarcodeWindow inherits Window {
 
     callback generate();
     callback copy-to-clipboard();
+    callback export-image();
 
     width: 520px;
     height: 560px;
@@ -100,7 +101,8 @@ export component BarcodeWindow inherits Window {
         if format-index <= 1: HorizontalBox {
             padding: 4px;
             spacing: 6px;
-            Text { text: "纠错等级:"; vertical-alignment: center; min-width: 54px; horizontal-stretch: 0; font-weight: 700; font-size: 13px; }
+            Text { text: "纠错等级:"; vertical-alignment: center; min-width: 54px; horizontal-stretch: 0; font-weight: 700; font-size: 13px;
+            }
             ComboBox {
                 model: ["0", "1", "2", "3", "4", "5", "6", "7", "8"];
                 current-index <=> eclevel-index;
@@ -113,7 +115,7 @@ export component BarcodeWindow inherits Window {
         // 按钮区域
         HorizontalBox {
             padding: 0;
-            spacing: 8px;
+            spacing: 10px;
             Button {
                 text: "生成条码";
                 primary: true;
@@ -124,9 +126,14 @@ export component BarcodeWindow inherits Window {
                 enabled: has-preview;
                 clicked => { copy-to-clipboard(); }
             }
+
+            Button {
+                text: "导出图片";
+                clicked => { export-image(); }
+            }
         }
 
-        // 预览区域（拉伸填充剩余空间）
+        
         Rectangle {
             background: #f0f0f0;
             border-radius: 6px;
