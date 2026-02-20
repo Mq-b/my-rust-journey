@@ -18,16 +18,17 @@ export component BarcodeWindow inherits Window {
 
     width: 520px;
     height: 560px;
-    title: "条码生成器";
+    title: "雅培条码生成器";
     icon: @image-url("../assets/icon.svg");
 
     VerticalBox {
+        width: parent.width;
         padding: 12px;
         spacing: 8px;
 
         // 标题
         Text {
-            text: "条码生成器";
+            text: "雅培条码生成器";
             font-size: 16px;
             font-weight: 700;
             horizontal-alignment: center;
@@ -47,7 +48,7 @@ export component BarcodeWindow inherits Window {
                 padding: 0;
                 spacing: 6px;
                 horizontal-stretch: 1;
-                Text { text: "类型:"; vertical-alignment: center; min-width: 36px; horizontal-stretch: 0; }
+                Text { text: "类型:"; vertical-alignment: center; min-width: 36px; horizontal-stretch: 0; font-weight: 700; font-size: 13px; }
                 ComboBox {
                     model: ["CompactPDF417", "PDF417", "QRCode", "DataMatrix", "Code128", "Code39", "Aztec", "EAN13"];
                     current-index <=> format-index;
@@ -58,7 +59,7 @@ export component BarcodeWindow inherits Window {
                 padding: 0;
                 spacing: 6px;
                 horizontal-stretch: 1;
-                Text { text: "缩放:"; vertical-alignment: center; min-width: 36px; horizontal-stretch: 0; }
+                Text { text: "缩放:"; vertical-alignment: center; min-width: 36px; horizontal-stretch: 0; font-weight: 700; font-size: 13px; }
                 ComboBox {
                     model: ["1x", "2x", "3x", "4x", "5x"];
                     current-index <=> scale-index;
@@ -75,7 +76,7 @@ export component BarcodeWindow inherits Window {
                 padding: 0;
                 spacing: 6px;
                 horizontal-stretch: 1;
-                Text { text: "旋转:"; vertical-alignment: center; min-width: 36px; horizontal-stretch: 0; }
+                Text { text: "旋转:"; vertical-alignment: center; min-width: 36px; horizontal-stretch: 0; font-weight: 700; font-size: 13px; }
                 ComboBox {
                     model: ["0°", "90°", "180°", "270°"];
                     current-index <=> rotate-index;
@@ -86,7 +87,7 @@ export component BarcodeWindow inherits Window {
                 padding: 0;
                 spacing: 6px;
                 horizontal-stretch: 1;
-                Text { text: "列数:"; vertical-alignment: center; min-width: 36px; horizontal-stretch: 0; }
+                Text { text: "列数:"; vertical-alignment: center; min-width: 36px; horizontal-stretch: 0; font-weight: 700; font-size: 13px; }
                 ComboBox {
                     model: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"];
                     current-index <=> columns-index;
@@ -99,7 +100,7 @@ export component BarcodeWindow inherits Window {
         if format-index <= 1: HorizontalBox {
             padding: 4px;
             spacing: 6px;
-            Text { text: "纠错等级:"; vertical-alignment: center; min-width: 54px; horizontal-stretch: 0; }
+            Text { text: "纠错等级:"; vertical-alignment: center; min-width: 54px; horizontal-stretch: 0; font-weight: 700; font-size: 13px; }
             ComboBox {
                 model: ["0", "1", "2", "3", "4", "5", "6", "7", "8"];
                 current-index <=> eclevel-index;
