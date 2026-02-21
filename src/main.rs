@@ -126,6 +126,32 @@ fn setup_export_image_callback(
     });
 }
 
+fn setup_menu_callbacks(window: &BarcodeWindow) {
+    window.on_quit(|| {
+        slint::quit_event_loop().unwrap();
+    });
+
+    let window_weak = window.as_weak();
+    window.on_reset_config(move || {
+        let window = window_weak.unwrap();
+        let cfg = Config::default();
+        restore_config(&window, &cfg);
+        save_config(&cfg);
+        window.set_toast_message("配置已重置".into());
+        window.set_toast_visible(true);
+    });
+
+    //let window_weak = window.as_weak();
+    window.on_show_about(move || {
+        // rfd 显示美观弹窗提示软件信息
+        rfd::MessageDialog::new()
+            .set_title("关于 Barcode Generator")
+            .set_description("Barcode Generator v1.0\n使用 Rust 和 Slint 开发的条码生成工具\n支持多种格式和自定义选项\n作者: Mq-b\n".to_string())
+            .set_buttons(rfd::MessageButtons::Ok)
+            .show();
+    });
+}
+
 fn main() {
     let cfg = load_config();
     let window = BarcodeWindow::new().unwrap();
@@ -135,6 +161,7 @@ fn main() {
     setup_generate_callback(&window, last_gray.clone());
     setup_clipboard_callback(&window, last_gray.clone());
     setup_export_image_callback(&window, last_gray.clone());
+    setup_menu_callbacks(&window);
 
     window.run().unwrap();
 }

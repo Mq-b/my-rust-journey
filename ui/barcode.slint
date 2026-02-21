@@ -1,4 +1,10 @@
-import { Button, LineEdit, ComboBox, VerticalBox, HorizontalBox } from "std-widgets.slint";
+import {
+    Button,
+    LineEdit,
+    ComboBox,
+    VerticalBox,
+    HorizontalBox,
+} from "std-widgets.slint";
 
 export component BarcodeWindow inherits Window {
     in-out property <string> content: "A06975H91015UN24";
@@ -12,15 +18,71 @@ export component BarcodeWindow inherits Window {
     in-out property <bool> has-preview: false;
     in-out property <string> toast-message: "";
     in-out property <bool> toast-visible: false;
-
     callback generate();
     callback copy-to-clipboard();
     callback export-image();
-
+    callback quit();
+    callback reset-config();
+    callback show-about();
     width: 520px;
     height: 560px;
     title: "雅培条码生成器";
     icon: @image-url("../assets/icon.svg");
+    MenuBar {
+        Menu {
+            title: "文件";
+            MenuItem {
+                title: "生成条码";
+                activated => {
+                    root.generate();
+                }
+            }
+
+            MenuItem {
+                title: "复制到剪贴板";
+                enabled: root.has-preview;
+                activated => {
+                    root.copy-to-clipboard();
+                }
+            }
+
+            MenuItem {
+                title: "导出图片";
+                activated => {
+                    root.export-image();
+                }
+            }
+
+            MenuSeparator { }
+
+            MenuItem {
+                title: "退出";
+                activated => {
+                    root.quit();
+                }
+            }
+        }
+
+        Menu {
+            title: "设置";
+            MenuItem {
+                title: "重置配置";
+                activated => {
+                    root.reset-config();
+                }
+            }
+        }
+
+        Menu {
+            title: "帮助";
+            MenuItem {
+                title: "关于";
+                activated => {
+                    root.show-about();
+                }
+            }
+        }
+    }
 
     VerticalBox {
         width: parent.width;
@@ -49,18 +111,44 @@ export component BarcodeWindow inherits Window {
                 padding: 0;
                 spacing: 6px;
                 horizontal-stretch: 1;
-                Text { text: "类型:"; vertical-alignment: center; min-width: 36px; horizontal-stretch: 0; font-weight: 700; font-size: 13px; }
+                Text {
+                    text: "类型:";
+                    vertical-alignment: center;
+                    min-width: 36px;
+                    horizontal-stretch: 0;
+                    font-weight: 700;
+                    font-size: 13px;
+                }
+
                 ComboBox {
-                    model: ["CompactPDF417", "PDF417", "QRCode", "DataMatrix", "Code128", "Code39", "Aztec", "EAN13"];
+                    model: [
+                        "CompactPDF417",
+                        "PDF417",
+                        "QRCode",
+                        "DataMatrix",
+                        "Code128",
+                        "Code39",
+                        "Aztec",
+                        "EAN13"
+                    ];
                     current-index <=> format-index;
                     horizontal-stretch: 1;
                 }
             }
+
             HorizontalBox {
                 padding: 0;
                 spacing: 6px;
                 horizontal-stretch: 1;
-                Text { text: "缩放:"; vertical-alignment: center; min-width: 36px; horizontal-stretch: 0; font-weight: 700; font-size: 13px; }
+                Text {
+                    text: "缩放:";
+                    vertical-alignment: center;
+                    min-width: 36px;
+                    horizontal-stretch: 0;
+                    font-weight: 700;
+                    font-size: 13px;
+                }
+
                 ComboBox {
                     model: ["1x", "2x", "3x", "4x", "5x"];
                     current-index <=> scale-index;
@@ -77,18 +165,35 @@ export component BarcodeWindow inherits Window {
                 padding: 0;
                 spacing: 6px;
                 horizontal-stretch: 1;
-                Text { text: "旋转:"; vertical-alignment: center; min-width: 36px; horizontal-stretch: 0; font-weight: 700; font-size: 13px; }
+                Text {
+                    text: "旋转:";
+                    vertical-alignment: center;
+                    min-width: 36px;
+                    horizontal-stretch: 0;
+                    font-weight: 700;
+                    font-size: 13px;
+                }
+
                 ComboBox {
                     model: ["0°", "90°", "180°", "270°"];
                     current-index <=> rotate-index;
                     horizontal-stretch: 1;
                 }
             }
+
             if format-index <= 1: HorizontalBox {
                 padding: 0;
                 spacing: 6px;
                 horizontal-stretch: 1;
-                Text { text: "列数:"; vertical-alignment: center; min-width: 36px; horizontal-stretch: 0; font-weight: 700; font-size: 13px; }
+                Text {
+                    text: "列数:";
+                    vertical-alignment: center;
+                    min-width: 36px;
+                    horizontal-stretch: 0;
+                    font-weight: 700;
+                    font-size: 13px;
+                }
+
                 ComboBox {
                     model: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"];
                     current-index <=> columns-index;
@@ -101,8 +206,15 @@ export component BarcodeWindow inherits Window {
         if format-index <= 1: HorizontalBox {
             padding: 4px;
             spacing: 6px;
-            Text { text: "纠错等级:"; vertical-alignment: center; min-width: 54px; horizontal-stretch: 0; font-weight: 700; font-size: 13px;
+            Text {
+                text: "纠错等级:";
+                vertical-alignment: center;
+                min-width: 54px;
+                horizontal-stretch: 0;
+                font-weight: 700;
+                font-size: 13px;
             }
+
             ComboBox {
                 model: ["0", "1", "2", "3", "4", "5", "6", "7", "8"];
                 current-index <=> eclevel-index;
@@ -119,35 +231,39 @@ export component BarcodeWindow inherits Window {
             Button {
                 text: "生成条码";
                 primary: true;
-                clicked => { generate(); }
+                clicked => {
+                    generate();
+                }
             }
+
             Button {
                 text: "复制到剪贴板";
                 enabled: has-preview;
-                clicked => { copy-to-clipboard(); }
+                clicked => {
+                    copy-to-clipboard();
+                }
             }
 
             Button {
                 text: "导出图片";
-                clicked => { export-image(); }
+                clicked => {
+                    export-image();
+                }
             }
         }
 
-        
         Rectangle {
             background: #f0f0f0;
             border-radius: 6px;
             border-width: 1px;
             border-color: #ccc;
             vertical-stretch: 1;
-
             if !has-preview: Text {
                 text: "预览区域";
                 color: #aaa;
                 horizontal-alignment: center;
                 vertical-alignment: center;
             }
-
             if has-preview: Image {
                 source: preview;
                 image-fit: contain;
@@ -168,13 +284,18 @@ export component BarcodeWindow inherits Window {
 
     // toast 淡入淡出透明度，跟随 toast-visible 变化并动画过渡
     property <float> toast-alpha: toast-visible ? 1.0 : 0.0;
-    animate toast-alpha { duration: 300ms; easing: ease-out; }
+    animate toast-alpha {
+        duration: 300ms;
+        easing: ease-out;
+    }
 
     // 750ms 后自动隐藏，加上 300ms 淡出共约 1s
     Timer {
         interval: 750ms;
         running: toast-visible;
-        triggered => { root.toast-visible = false; }
+        triggered => {
+            root.toast-visible = false;
+        }
     }
 
     // Toast 通知（悬浮在底部，点击关闭）
@@ -186,7 +307,6 @@ export component BarcodeWindow inherits Window {
         height: 40px;
         background: #333333;
         border-radius: 20px;
-
         Text {
             text: toast-message;
             color: #ffffff;
@@ -199,7 +319,9 @@ export component BarcodeWindow inherits Window {
 
         TouchArea {
             enabled: root.toast-visible;
-            clicked => { root.toast-visible = false; }
+            clicked => {
+                root.toast-visible = false;
+            }
         }
     }
 }
