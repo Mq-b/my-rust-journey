@@ -4,6 +4,7 @@ import {
     ComboBox,
     VerticalBox,
     HorizontalBox,
+    Palette,
 } from "std-widgets.slint";
 
 export component BarcodeWindow inherits Window {
@@ -253,14 +254,15 @@ export component BarcodeWindow inherits Window {
         }
 
         Rectangle {
-            background: #f0f0f0;
+            background: Palette.alternate-background;
             border-radius: 6px;
             border-width: 1px;
-            border-color: #ccc;
+            border-color: Palette.border;
             vertical-stretch: 1;
             if !has-preview: Text {
                 text: "预览区域";
-                color: #aaa;
+                color: #808080;
+                font-size: 13px;
                 horizontal-alignment: center;
                 vertical-alignment: center;
             }
