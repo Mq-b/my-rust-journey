@@ -5,9 +5,11 @@ import {
     VerticalBox,
     HorizontalBox,
     Palette,
+    ScrollView,
 } from "std-widgets.slint";
 
 export component BarcodeWindow inherits Window {
+    // ── Standard mode properties ─────────────────────────────────────────
     in-out property <string> content: "A06975H91015UN24";
     in-out property <int> format-index: 0;
     in-out property <int> scale-index: 1;
@@ -16,63 +18,78 @@ export component BarcodeWindow inherits Window {
     in-out property <int> eclevel-index: 6;
     in-out property <string> width-cm: "5.0";
     in-out property <string> height-cm: "2.0";
-    in-out property <string> status: "就绪，点击生成条码";
     in-out property <image> preview;
     in-out property <bool> has-preview: false;
+
+    // ── Abbott mode properties ───────────────────────────────────────────
+    in-out property <bool> abbott-mode: false;
+    in-out property <int> abbott-project-index: 0;
+    in-out property <[string]> abbott-project-names: [];
+    in-out property <int> abbott-reagent-count: 1;
+    in-out property <string> abbott-sn1: "";
+    in-out property <string> abbott-sn2: "";
+    in-out property <string> abbott-sn3: "";
+    in-out property <string> abbott-control-no: "";
+    in-out property <string> abbott-expiry: "";
+    in-out property <[string]> abbott-result-labels: [];
+    in-out property <[string]> abbott-result-contents: [];
+    in-out property <[image]> abbott-result-images: [];
+
+    // ── Shared UI state ──────────────────────────────────────────────────
+    in-out property <string> status: "就绪，点击生成条码";
     in-out property <string> toast-message: "";
     in-out property <bool> toast-visible: false;
+
+    // ── Callbacks ────────────────────────────────────────────────────────
     callback generate();
     callback copy-to-clipboard();
     callback export-image();
     callback quit();
     callback reset-config();
     callback show-about();
+    callback toggle-abbott-mode();
+    callback abbott-generate();
+    callback abbott-export-all();
+    callback abbott-project-changed(int);
+
     width: 520px;
-    height: 620px;
+    height: 680px;
     title: "雅培条码生成器";
     icon: @image-url("../assets/icon.svg");
+
+    // ── Menu bar ─────────────────────────────────────────────────────────
     MenuBar {
         Menu {
             title: "文件";
             MenuItem {
                 title: "生成条码";
-                activated => {
-                    root.generate();
-                }
+                activated => { root.generate(); }
             }
-
             MenuItem {
                 title: "复制到剪贴板";
                 enabled: root.has-preview;
-                activated => {
-                    root.copy-to-clipboard();
-                }
+                activated => { root.copy-to-clipboard(); }
             }
-
             MenuItem {
                 title: "导出图片";
-                activated => {
-                    root.export-image();
-                }
+                activated => { root.export-image(); }
             }
-
             MenuSeparator { }
-
             MenuItem {
                 title: "退出";
-                activated => {
-                    root.quit();
-                }
+                activated => { root.quit(); }
             }
         }
 
         Menu {
             title: "设置";
             MenuItem {
+                title: root.abbott-mode ? "✓ 雅培项目" : "  雅培项目";
+                activated => { root.toggle-abbott-mode(); }
+            }
+            MenuItem {
                 title: "重置配置";
-                activated => {
-                    root.reset-config();
-                }
+                activated => { root.reset-config(); }
             }
         }
 
@@ -80,19 +97,17 @@ export component BarcodeWindow inherits Window {
             title: "帮助";
             MenuItem {
                 title: "关于";
-                activated => {
-                    root.show-about();
-                }
+                activated => { root.show-about(); }
             }
         }
     }
 
+    // ── Body ─────────────────────────────────────────────────────────────
     VerticalBox {
         width: parent.width;
         padding: 12px;
         spacing: 8px;
 
-        // 标题
         Text {
             text: "雅培条码生成器";
             font-size: 16px;
@@ -100,245 +115,392 @@ export component BarcodeWindow inherits Window {
             horizontal-alignment: center;
         }
 
-        // 内容输入（占满整行）
-        LineEdit {
-            text <=> content;
-            placeholder-text: "输入条码内容";
-        }
-
-        // 类型 + 缩放（同行，两侧各占一半）
-        HorizontalBox {
-            padding: 4px;
+        // ── Standard mode ────────────────────────────────────────────────
+        if !root.abbott-mode: VerticalBox {
+            padding: 0px;
             spacing: 8px;
-            HorizontalBox {
-                padding: 0;
-                spacing: 6px;
-                horizontal-stretch: 1;
-                Text {
-                    text: "类型:";
-                    vertical-alignment: center;
-                    min-width: 36px;
-                    horizontal-stretch: 0;
-                    font-weight: 700;
-                    font-size: 13px;
-                }
 
-                ComboBox {
-                    model: [
-                        "CompactPDF417",
-                        "PDF417",
-                        "QRCode",
-                        "DataMatrix",
-                        "Code128",
-                        "Code39",
-                        "Aztec",
-                        "EAN13"
-                    ];
-                    current-index <=> format-index;
+            LineEdit {
+                text <=> content;
+                placeholder-text: "输入条码内容";
+            }
+
+            HorizontalBox {
+                padding: 4px;
+                spacing: 8px;
+                HorizontalBox {
+                    padding: 0;
+                    spacing: 6px;
                     horizontal-stretch: 1;
+                    Text {
+                        text: "类型:";
+                        vertical-alignment: center;
+                        min-width: 36px;
+                        horizontal-stretch: 0;
+                        font-weight: 700;
+                        font-size: 13px;
+                    }
+                    ComboBox {
+                        model: ["CompactPDF417","PDF417","QRCode","DataMatrix","Code128","Code39","Aztec","EAN13"];
+                        current-index <=> format-index;
+                        horizontal-stretch: 1;
+                    }
+                }
+                HorizontalBox {
+                    padding: 0;
+                    spacing: 6px;
+                    horizontal-stretch: 1;
+                    Text {
+                        text: "缩放:";
+                        vertical-alignment: center;
+                        min-width: 36px;
+                        horizontal-stretch: 0;
+                        font-weight: 700;
+                        font-size: 13px;
+                    }
+                    ComboBox {
+                        model: ["1x","2x","3x","4x","5x"];
+                        current-index <=> scale-index;
+                        horizontal-stretch: 1;
+                    }
                 }
             }
 
             HorizontalBox {
-                padding: 0;
-                spacing: 6px;
-                horizontal-stretch: 1;
-                Text {
-                    text: "缩放:";
-                    vertical-alignment: center;
-                    min-width: 36px;
-                    horizontal-stretch: 0;
-                    font-weight: 700;
-                    font-size: 13px;
-                }
-
-                ComboBox {
-                    model: ["1x", "2x", "3x", "4x", "5x"];
-                    current-index <=> scale-index;
+                padding: 4px;
+                spacing: 8px;
+                HorizontalBox {
+                    padding: 0;
+                    spacing: 6px;
                     horizontal-stretch: 1;
+                    Text {
+                        text: "旋转:";
+                        vertical-alignment: center;
+                        min-width: 36px;
+                        horizontal-stretch: 0;
+                        font-weight: 700;
+                        font-size: 13px;
+                    }
+                    ComboBox {
+                        model: ["0°","90°","180°","270°"];
+                        current-index <=> rotate-index;
+                        horizontal-stretch: 1;
+                    }
                 }
-            }
-        }
-
-        // 旋转 + 列数（同行，与上行对齐）
-        HorizontalBox {
-            padding: 4px;
-            spacing: 8px;
-            HorizontalBox {
-                padding: 0;
-                spacing: 6px;
-                horizontal-stretch: 1;
-                Text {
-                    text: "旋转:";
-                    vertical-alignment: center;
-                    min-width: 36px;
-                    horizontal-stretch: 0;
-                    font-weight: 700;
-                    font-size: 13px;
-                }
-
-                ComboBox {
-                    model: ["0°", "90°", "180°", "270°"];
-                    current-index <=> rotate-index;
+                if format-index <= 1: HorizontalBox {
+                    padding: 0;
+                    spacing: 6px;
                     horizontal-stretch: 1;
+                    Text {
+                        text: "列数:";
+                        vertical-alignment: center;
+                        min-width: 36px;
+                        horizontal-stretch: 0;
+                        font-weight: 700;
+                        font-size: 13px;
+                    }
+                    ComboBox {
+                        model: ["1","2","3","4","5","6","7","8","9","10"];
+                        current-index <=> columns-index;
+                        horizontal-stretch: 1;
+                    }
                 }
             }
 
             if format-index <= 1: HorizontalBox {
-                padding: 0;
+                padding: 4px;
                 spacing: 6px;
-                horizontal-stretch: 1;
                 Text {
-                    text: "列数:";
+                    text: "纠错等级:";
                     vertical-alignment: center;
-                    min-width: 36px;
+                    min-width: 54px;
                     horizontal-stretch: 0;
                     font-weight: 700;
                     font-size: 13px;
                 }
-
                 ComboBox {
-                    model: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"];
-                    current-index <=> columns-index;
+                    model: ["0","1","2","3","4","5","6","7","8"];
+                    current-index <=> eclevel-index;
+                    min-width: 72px;
+                    max-width: 120px;
+                    horizontal-stretch: 0;
+                }
+            }
+
+            HorizontalBox {
+                padding: 4px;
+                spacing: 8px;
+                HorizontalBox {
+                    padding: 0;
+                    spacing: 6px;
                     horizontal-stretch: 1;
+                    Text {
+                        text: "宽度:";
+                        vertical-alignment: center;
+                        min-width: 36px;
+                        horizontal-stretch: 0;
+                        font-weight: 700;
+                        font-size: 13px;
+                    }
+                    LineEdit {
+                        text <=> width-cm;
+                        placeholder-text: "输入宽度";
+                        horizontal-stretch: 1;
+                    }
+                    Text { text: "cm"; vertical-alignment: center; font-size: 13px; color: #888; }
+                }
+                HorizontalBox {
+                    padding: 0;
+                    spacing: 6px;
+                    horizontal-stretch: 1;
+                    Text {
+                        text: "高度:";
+                        vertical-alignment: center;
+                        min-width: 36px;
+                        horizontal-stretch: 0;
+                        font-weight: 700;
+                        font-size: 13px;
+                    }
+                    LineEdit {
+                        text <=> height-cm;
+                        placeholder-text: "输入高度";
+                        horizontal-stretch: 1;
+                    }
+                    Text { text: "cm"; vertical-alignment: center; font-size: 13px; color: #888; }
+                }
+            }
+
+            HorizontalBox {
+                padding: 0;
+                spacing: 10px;
+                Button {
+                    text: "生成条码";
+                    primary: true;
+                    clicked => { generate(); }
+                }
+                Button {
+                    text: "复制到剪贴板";
+                    enabled: has-preview;
+                    clicked => { copy-to-clipboard(); }
+                }
+                Button {
+                    text: "导出图片";
+                    clicked => { export-image(); }
+                }
+            }
+
+            Rectangle {
+                background: Palette.alternate-background;
+                border-radius: 6px;
+                border-width: 1px;
+                border-color: Palette.border;
+                vertical-stretch: 1;
+                min-height: 200px;
+                if !has-preview: Text {
+                    text: "预览区域";
+                    color: #808080;
+                    font-size: 13px;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+                if has-preview: Image {
+                    source: preview;
+                    image-fit: contain;
+                    image-rendering: pixelated;
+                    width: 100%;
+                    height: 100%;
                 }
             }
         }
 
-        // 纠错等级（仅 PDF417/CompactPDF417）
-        if format-index <= 1: HorizontalBox {
-            padding: 4px;
-            spacing: 6px;
-            Text {
-                text: "纠错等级:";
-                vertical-alignment: center;
-                min-width: 54px;
-                horizontal-stretch: 0;
-                font-weight: 700;
-                font-size: 13px;
-            }
-
-            ComboBox {
-                model: ["0", "1", "2", "3", "4", "5", "6", "7", "8"];
-                current-index <=> eclevel-index;
-                min-width: 72px;
-                max-width: 120px;
-                horizontal-stretch: 0;
-            }
-        }
-
-        // 尺寸输入（宽、高，单位 cm，无需按比例）
-        HorizontalBox {
-            padding: 4px;
+        // ── Abbott mode ──────────────────────────────────────────────────
+        if root.abbott-mode: VerticalBox {
+            padding: 0px;
             spacing: 8px;
+
+            // Project dropdown
             HorizontalBox {
                 padding: 0;
-                spacing: 6px;
-                horizontal-stretch: 1;
+                spacing: 8px;
                 Text {
-                    text: "宽度:";
+                    text: "项目:";
                     vertical-alignment: center;
-                    min-width: 36px;
-                    horizontal-stretch: 0;
+                    min-width: 80px;
                     font-weight: 700;
                     font-size: 13px;
                 }
-
-                LineEdit {
-                    text <=> width-cm;
-                    placeholder-text: "输入宽度";
+                ComboBox {
+                    model: root.abbott-project-names;
+                    current-index <=> root.abbott-project-index;
                     horizontal-stretch: 1;
-                }
-
-                Text {
-                    text: "cm";
-                    vertical-alignment: center;
-                    horizontal-stretch: 0;
-                    font-size: 13px;
-                    color: #888;
+                    changed current-index => {
+                        root.abbott-project-changed(root.abbott-project-index);
+                    }
                 }
             }
 
+            // SN码 1 (always shown)
             HorizontalBox {
                 padding: 0;
-                spacing: 6px;
-                horizontal-stretch: 1;
+                spacing: 8px;
                 Text {
-                    text: "高度:";
+                    text: root.abbott-reagent-count > 1 ? "SN码 1:" : "SN码:";
                     vertical-alignment: center;
-                    min-width: 36px;
-                    horizontal-stretch: 0;
+                    min-width: 80px;
                     font-weight: 700;
                     font-size: 13px;
                 }
-
                 LineEdit {
-                    text <=> height-cm;
-                    placeholder-text: "输入高度";
+                    text <=> root.abbott-sn1;
+                    placeholder-text: "请输入SN码";
                     horizontal-stretch: 1;
                 }
+            }
 
+            // SN码 2 (multi-reagent only)
+            if root.abbott-reagent-count >= 2: HorizontalBox {
+                padding: 0;
+                spacing: 8px;
                 Text {
-                    text: "cm";
+                    text: "SN码 2:";
                     vertical-alignment: center;
-                    horizontal-stretch: 0;
+                    min-width: 80px;
+                    font-weight: 700;
                     font-size: 13px;
-                    color: #888;
+                }
+                LineEdit {
+                    text <=> root.abbott-sn2;
+                    placeholder-text: "请输入SN码";
+                    horizontal-stretch: 1;
+                }
+            }
+
+            // SN码 3 (3-reagent only)
+            if root.abbott-reagent-count >= 3: HorizontalBox {
+                padding: 0;
+                spacing: 8px;
+                Text {
+                    text: "SN码 3:";
+                    vertical-alignment: center;
+                    min-width: 80px;
+                    font-weight: 700;
+                    font-size: 13px;
+                }
+                LineEdit {
+                    text <=> root.abbott-sn3;
+                    placeholder-text: "请输入SN码";
+                    horizontal-stretch: 1;
+                }
+            }
+
+            // Control No. (批号)
+            HorizontalBox {
+                padding: 0;
+                spacing: 8px;
+                Text {
+                    text: "批号:";
+                    vertical-alignment: center;
+                    min-width: 80px;
+                    font-weight: 700;
+                    font-size: 13px;
+                }
+                LineEdit {
+                    text <=> root.abbott-control-no;
+                    placeholder-text: "如: 80001";
+                    horizontal-stretch: 1;
+                }
+            }
+
+            // 有效期
+            HorizontalBox {
+                padding: 0;
+                spacing: 8px;
+                Text {
+                    text: "有效期:";
+                    vertical-alignment: center;
+                    min-width: 80px;
+                    font-weight: 700;
+                    font-size: 13px;
+                }
+                LineEdit {
+                    text <=> root.abbott-expiry;
+                    placeholder-text: "格式: YYYY-MM-DD";
+                    horizontal-stretch: 1;
+                }
+            }
+
+            // Buttons
+            HorizontalBox {
+                padding: 0;
+                spacing: 10px;
+                Button {
+                    text: "生成条码";
+                    primary: true;
+                    clicked => { root.abbott-generate(); }
+                }
+                Button {
+                    text: "导出全部";
+                    clicked => { root.abbott-export-all(); }
+                }
+            }
+
+            // Results area
+            Rectangle {
+                background: Palette.alternate-background;
+                border-radius: 6px;
+                border-width: 1px;
+                border-color: Palette.border;
+                vertical-stretch: 1;
+                min-height: 240px;
+                clip: true;
+
+                if root.abbott-result-labels.length == 0: Text {
+                    text: "生成结果将在此显示";
+                    color: #808080;
+                    font-size: 13px;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+
+                if root.abbott-result-labels.length > 0: ScrollView {
+                    width: 100%;
+                    height: 100%;
+
+                    VerticalLayout {
+                        padding: 8px;
+                        spacing: 10px;
+
+                        for lbl[i] in root.abbott-result-labels: VerticalLayout {
+                            spacing: 4px;
+
+                            Text {
+                                text: lbl;
+                                font-weight: 700;
+                                font-size: 12px;
+                                color: Palette.foreground;
+                            }
+
+                            Text {
+                                text: root.abbott-result-contents[i];
+                                font-size: 10px;
+                                color: #666;
+                                overflow: elide;
+                            }
+
+                            Image {
+                                source: root.abbott-result-images[i];
+                                image-fit: contain;
+                                image-rendering: pixelated;
+                                height: 80px;
+                                horizontal-alignment: left;
+                            }
+                        }
+                    }
                 }
             }
         }
 
-        // 按钮区域
-        HorizontalBox {
-            padding: 0;
-            spacing: 10px;
-            Button {
-                text: "生成条码";
-                primary: true;
-                clicked => {
-                    generate();
-                }
-            }
-
-            Button {
-                text: "复制到剪贴板";
-                enabled: has-preview;
-                clicked => {
-                    copy-to-clipboard();
-                }
-            }
-
-            Button {
-                text: "导出图片";
-                clicked => {
-                    export-image();
-                }
-            }
-        }
-
-        Rectangle {
-            background: Palette.alternate-background;
-            border-radius: 6px;
-            border-width: 1px;
-            border-color: Palette.border;
-            vertical-stretch: 1;
-            if !has-preview: Text {
-                text: "预览区域";
-                color: #808080;
-                font-size: 13px;
-                horizontal-alignment: center;
-                vertical-alignment: center;
-            }
-            if has-preview: Image {
-                source: preview;
-                image-fit: contain;
-                image-rendering: pixelated;
-                width: 100%;
-                height: 100%;
-            }
-        }
-
-        // 状态栏
+        // ── Status bar ───────────────────────────────────────────────────
         Text {
             text: status;
             color: #888;
@@ -347,23 +509,19 @@ export component BarcodeWindow inherits Window {
         }
     }
 
-    // toast 淡入淡出透明度，跟随 toast-visible 变化并动画过渡
+    // ── Toast notification ───────────────────────────────────────────────
     property <float> toast-alpha: toast-visible ? 1.0 : 0.0;
     animate toast-alpha {
         duration: 300ms;
         easing: ease-out;
     }
 
-    // 750ms 后自动隐藏，加上 300ms 淡出共约 1s
     Timer {
         interval: 750ms;
         running: toast-visible;
-        triggered => {
-            root.toast-visible = false;
-        }
+        triggered => { root.toast-visible = false; }
     }
 
-    // Toast 通知（悬浮在底部，点击关闭）
     Rectangle {
         opacity: root.toast-alpha;
         x: (parent.width - 260px) / 2;
@@ -381,12 +539,9 @@ export component BarcodeWindow inherits Window {
             width: 100%;
             height: 100%;
         }
-
         TouchArea {
             enabled: root.toast-visible;
-            clicked => {
-                root.toast-visible = false;
-            }
+            clicked => { root.toast-visible = false; }
         }
     }
 }

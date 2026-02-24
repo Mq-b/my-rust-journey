@@ -1,0 +1,92 @@
+{
+  "projects": [
+    {
+      "name": "CTNI",
+      "control_no_suffix": "UD00",
+      "control_no_default_number": "80001",
+      "expiry_format": "00DDMMYYYY",
+      "reagents": [
+        {
+          "name": "CTNI",
+          "short_prefix": "H",
+          "long_prefix": "G",
+          "project_bits": "6201010300001",
+          "long_trailing": "H0000162001AAAG"
+        }
+      ]
+    },
+    {
+      "name": "CK-MB",
+      "control_no_suffix": "UN24",
+      "control_no_default_number": "80001",
+      "expiry_format": "DDMMYYYY",
+      "reagents": [
+        {
+          "name": "CK-MB",
+          "short_prefix": "H",
+          "long_prefix": "G",
+          "project_bits": "0300062024701",
+          "long_trailing": "H0000000000AAAB"
+        }
+      ]
+    },
+    {
+      "name": "Myo",
+      "control_no_suffix": "UN24",
+      "control_no_default_number": "80001",
+      "expiry_format": "DDMMYYYY",
+      "reagents": [
+        {
+          "name": "Myo-1",
+          "short_prefix": "H",
+          "long_prefix": "G",
+          "project_bits": "4612010300002",
+          "long_trailing": "HJ000000000AAAA"
+        },
+        {
+          "name": "Myo-2",
+          "short_prefix": "J",
+          "long_prefix": "G",
+          "project_bits": "4612010300002",
+          "long_trailing": "HJ000000000AAAA"
+        },
+        {
+          "name": "Myo-3",
+          "short_prefix": "L",
+          "long_prefix": "G",
+          "project_bits": "4612010300002",
+          "long_trailing": "HJ000000000AAAA"
+        }
+      ]
+    },
+    {
+      "name": "BNP",
+      "control_no_suffix": "UN24",
+      "control_no_default_number": "80001",
+      "expiry_format": "DDMMYYYY",
+      "reagents": [
+        {
+          "name": "BNP-1",
+          "short_prefix": "H",
+          "long_prefix": "G",
+          "project_bits": "0000000000000",
+          "long_trailing": "H0000000000AAAC"
+        },
+        {
+          "name": "BNP-2",
+          "short_prefix": "J",
+          "long_prefix": "G",
+          "project_bits": "0000000000000",
+          "long_trailing": "H0000000000AAAC"
+        },
+        {
+          "name": "BNP-3",
+          "short_prefix": "L",
+          "long_prefix": "G",
+          "project_bits": "0000000000000",
+          "long_trailing": "H0000000000AAAC"
+        }
+      ]
+    }
+  ]
+}
