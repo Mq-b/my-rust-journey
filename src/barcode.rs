@@ -57,7 +57,24 @@ pub fn generate_barcode(config: &Config) -> anyhow::Result<BarcodeResult> {
             .rotate(rotate),
     )?;
 
-    let gray_image = image::GrayImage::from(&img);
+    let mut gray_image = image::GrayImage::from(&img);
+    // 按物理尺寸缩放（300 DPI）
+    if config.width_cm > 0.0 && config.height_cm > 0.0 {
+        let target_w = (config.width_cm / 2.54 * 300.0).round() as u32;
+        let target_h = (config.height_cm / 2.54 * 300.0).round() as u32;
+        if target_w > 0 && target_h > 0 {
+            gray_image = image::imageops::resize(
+                &gray_image,
+                target_w,
+                target_h,
+                image::imageops::FilterType::Nearest,
+            );
+            println!(
+                "Scaled to {}x{} px for {} cm x {} cm at 300 DPI",
+                target_w, target_h, config.width_cm, config.height_cm
+            );
+        }
+    }
     let width = gray_image.width();
     let height = gray_image.height();
     save_png_300dpi(&gray_image, "out.png")?;
@@ -83,8 +100,12 @@ pub fn gray_to_slint_image(gray: &image::GrayImage) -> slint::Image {
 }
 
 /// 以 300 DPI 元数据保存灰度 PNG（pHYs chunk: 11811 像素/米）
-fn save_png_300dpi(gray: &image::GrayImage, path: &str) -> anyhow::Result<()> {
-    const PIXELS_PER_METER: u32 = 11811; // 300 DPI = 300 / 0.0254 ≈ 11811
+pub fn save_png_300dpi(
+    gray: &image::GrayImage,
+    path: impl AsRef<std::path::Path>,
+) -> anyhow::Result<()> {
+    // 300 DPI → DPM = 300 / 0.0254 ≈ 11811 像素/米
+    const PIXELS_PER_METER: u32 = 11811;
 
     let file = std::fs::File::create(path)?;
     let buf = std::io::BufWriter::new(file);

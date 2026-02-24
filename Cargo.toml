@@ -28,7 +28,7 @@ serde_json = "1"
 arboard = "3"
 png = "0.18.1"
 rfd = "0.17.0"
-chrono = "0.4"
+chrono = "0.4.44"
 
 [build-dependencies]
 embed-resource = "1.0.0"

@@ -2,7 +2,7 @@
 mod barcode;
 mod config;
 
-use barcode::{generate_barcode, gray_to_slint_image};
+use barcode::{generate_barcode, gray_to_slint_image, save_png_300dpi};
 use config::{Config, load_config, save_config};
 use rfd::FileDialog;
 use std::sync::{Arc, Mutex};
@@ -16,6 +16,8 @@ fn restore_config(window: &BarcodeWindow, cfg: &Config) {
     window.set_rotate_index(cfg.rotate_index as i32);
     window.set_columns_index(cfg.columns_index as i32);
     window.set_eclevel_index(cfg.eclevel_index as i32);
+    window.set_width_cm(format!("{}", cfg.width_cm).into());
+    window.set_height_cm(format!("{}", cfg.height_cm).into());
 }
 
 fn setup_generate_callback(
@@ -32,6 +34,8 @@ fn setup_generate_callback(
             rotate_index: window.get_rotate_index() as usize,
             columns_index: window.get_columns_index() as usize,
             eclevel_index: window.get_eclevel_index() as usize,
+            width_cm: window.get_width_cm().parse::<f32>().unwrap_or(0.0),
+            height_cm: window.get_height_cm().parse::<f32>().unwrap_or(0.0),
         };
         match generate_barcode(&config) {
             Ok(result) => {
@@ -107,7 +111,7 @@ fn setup_export_image_callback(
                 .set_file_name(filename)
                 .save_file()
             {
-                Some(path) => match gray.save(&path) {
+                Some(path) => match save_png_300dpi(gray, &path) {
                     Ok(_) => format!("导出成功: {}", path.display()),
                     Err(e) => format!("导出失败: {}", e),
                 },

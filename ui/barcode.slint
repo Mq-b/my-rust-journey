@@ -14,6 +14,8 @@ export component BarcodeWindow inherits Window {
     in-out property <int> rotate-index: 0;
     in-out property <int> columns-index: 1;
     in-out property <int> eclevel-index: 6;
+    in-out property <string> width-cm: "5.0";
+    in-out property <string> height-cm: "2.0";
     in-out property <string> status: "就绪，点击生成条码";
     in-out property <image> preview;
     in-out property <bool> has-preview: false;
@@ -26,7 +28,7 @@ export component BarcodeWindow inherits Window {
     callback reset-config();
     callback show-about();
     width: 520px;
-    height: 560px;
+    height: 620px;
     title: "雅培条码生成器";
     icon: @image-url("../assets/icon.svg");
     MenuBar {
@@ -222,6 +224,67 @@ export component BarcodeWindow inherits Window {
                 min-width: 72px;
                 max-width: 120px;
                 horizontal-stretch: 0;
+            }
+        }
+
+        // 尺寸输入（宽、高，单位 cm，无需按比例）
+        HorizontalBox {
+            padding: 4px;
+            spacing: 8px;
+            HorizontalBox {
+                padding: 0;
+                spacing: 6px;
+                horizontal-stretch: 1;
+                Text {
+                    text: "宽度:";
+                    vertical-alignment: center;
+                    min-width: 36px;
+                    horizontal-stretch: 0;
+                    font-weight: 700;
+                    font-size: 13px;
+                }
+
+                LineEdit {
+                    text <=> width-cm;
+                    placeholder-text: "输入宽度";
+                    horizontal-stretch: 1;
+                }
+
+                Text {
+                    text: "cm";
+                    vertical-alignment: center;
+                    horizontal-stretch: 0;
+                    font-size: 13px;
+                    color: #888;
+                }
+            }
+
+            HorizontalBox {
+                padding: 0;
+                spacing: 6px;
+                horizontal-stretch: 1;
+                Text {
+                    text: "高度:";
+                    vertical-alignment: center;
+                    min-width: 36px;
+                    horizontal-stretch: 0;
+                    font-weight: 700;
+                    font-size: 13px;
+                }
+
+                LineEdit {
+                    text <=> height-cm;
+                    placeholder-text: "输入高度";
+                    horizontal-stretch: 1;
+                }
+
+                Text {
+                    text: "cm";
+                    vertical-alignment: center;
+                    horizontal-stretch: 0;
+                    font-size: 13px;
+                    color: #888;
+                }
             }
         }
 
