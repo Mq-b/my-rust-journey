@@ -133,20 +133,40 @@ fn setup_export_image_callback(
     });
 }
 
+fn default_expiry() -> String {
+    let now = chrono::Local::now();
+    let next = now + chrono::Months::new(1);
+    next.format("%Y-%m-%d").to_string()
+}
+
+fn apply_project_defaults(window: &BarcodeWindow, project: &abbott::AbbottProject) {
+    window.set_abbott_reagent_count(project.reagents.len() as i32);
+    window.set_abbott_control_no(project.control_no_default_number.clone().into());
+    // 项目位：取第一个试剂的 project_bits
+    if let Some(first) = project.reagents.first() {
+        window.set_abbott_project_bits(first.project_bits.clone().into());
+    }
+    // SN默认值
+    window.set_abbott_sn1("01137".into());
+    window.set_abbott_sn2("01137".into());
+    window.set_abbott_sn3("01137".into());
+    // 有效期：当前时间+1个月
+    window.set_abbott_expiry(default_expiry().into());
+}
+
 fn setup_abbott_callbacks(
     window: &BarcodeWindow,
     projects_cfg: Arc<AbbottProjectsConfig>,
     last_abbott: Arc<Mutex<Vec<AbbottBarcodeItem>>>,
 ) {
-    // Project changed → update reagent count and default Control No.
+    // Project changed → update reagent count, project bits, defaults
     {
         let window_weak = window.as_weak();
         let cfg = projects_cfg.clone();
         window.on_abbott_project_changed(move |idx| {
             let window = window_weak.unwrap();
             if let Some(project) = cfg.projects.get(idx as usize) {
-                window.set_abbott_reagent_count(project.reagents.len() as i32);
-                window.set_abbott_control_no(project.control_no_default_number.clone().into());
+                apply_project_defaults(&window, project);
             }
         });
     }
@@ -158,6 +178,12 @@ fn setup_abbott_callbacks(
         let last = last_abbott.clone();
         window.on_abbott_generate(move || {
             let window = window_weak.unwrap();
+
+            // 每次生成前清空上次结果
+            window.set_abbott_result_labels(ModelRc::new(VecModel::<slint::SharedString>::default()));
+            window.set_abbott_result_contents(ModelRc::new(VecModel::<slint::SharedString>::default()));
+            window.set_abbott_result_images(ModelRc::new(VecModel::<slint::Image>::default()));
+
             let idx = window.get_abbott_project_index() as usize;
             let project = match cfg.projects.get(idx) {
                 Some(p) => p,
@@ -174,8 +200,9 @@ fn setup_abbott_callbacks(
             ];
             let control_no = window.get_abbott_control_no().to_string();
             let expiry = window.get_abbott_expiry().to_string();
+            let project_bits = window.get_abbott_project_bits().to_string();
 
-            match generate_abbott_barcodes(project, &sns, &control_no, &expiry) {
+            match generate_abbott_barcodes(project, &sns, &control_no, &expiry, &project_bits) {
                 Ok(items) => {
                     let labels: Vec<slint::SharedString> =
                         items.iter().map(|it| it.label.clone().into()).collect();
@@ -195,6 +222,29 @@ fn setup_abbott_callbacks(
                 Err(e) => {
                     window.set_status(format!("生成失败: {}", e).into());
                 }
+            }
+        });
+    }
+
+    // Copy single barcode content to clipboard
+    {
+        let window_weak = window.as_weak();
+        let last = last_abbott.clone();
+        window.on_abbott_copy_content(move |idx| {
+            let window = window_weak.unwrap();
+            let items = last.lock().unwrap();
+            if let Some(item) = items.get(idx as usize) {
+                let content = item.content.clone();
+                drop(items);
+                let msg = match arboard::Clipboard::new() {
+                    Ok(mut clipboard) => match clipboard.set_text(&content) {
+                        Ok(_) => format!("已复制: {}", &content[..content.len().min(20)]),
+                        Err(e) => format!("复制失败: {}", e),
+                    },
+                    Err(e) => format!("剪贴板错误: {}", e),
+                };
+                window.set_toast_message(msg.into());
+                window.set_toast_visible(true);
             }
         });
     }
@@ -260,10 +310,7 @@ fn setup_menu_callbacks(window: &BarcodeWindow, projects_cfg: Arc<AbbottProjects
             if new_mode {
                 let idx = window.get_abbott_project_index() as usize;
                 if let Some(project) = cfg.projects.get(idx) {
-                    window.set_abbott_reagent_count(project.reagents.len() as i32);
-                    window.set_abbott_control_no(
-                        project.control_no_default_number.clone().into(),
-                    );
+                    apply_project_defaults(&window, project);
                 }
             }
         });
@@ -284,11 +331,12 @@ fn main() {
         .collect();
     window.set_abbott_project_names(ModelRc::new(VecModel::from(project_names)));
 
-    // Initialize reagent count & default control-no for saved project index
+    // Initialize defaults for the saved project index
     if let Some(project) = projects_cfg.projects.get(cfg.abbott_project_index) {
-        window.set_abbott_reagent_count(project.reagents.len() as i32);
-        window.set_abbott_control_no(project.control_no_default_number.clone().into());
+        apply_project_defaults(&window, project);
     }
+    // Always set expiry to today+1 month on startup
+    window.set_abbott_expiry(default_expiry().into());
 
     // Empty result models
     window.set_abbott_result_labels(ModelRc::new(VecModel::<slint::SharedString>::default()));
