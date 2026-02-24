@@ -20,6 +20,10 @@ pub struct Config {
     pub width_cm: f32,
     #[serde(default = "default_height_cm")]
     pub height_cm: f32,
+    #[serde(default)]
+    pub abbott_mode: bool,
+    #[serde(default)]
+    pub abbott_project_index: usize,
 }
 
 impl Default for Config {
@@ -31,8 +35,10 @@ impl Default for Config {
             rotate_index: 0,  // 0°
             columns_index: 1, // 列数 2
             eclevel_index: 2, // 纠错等级 2（PDF417 默认）
-            width_cm: 5.0,
-            height_cm: 2.0,
+            width_cm: 0.0,
+            height_cm: 0.0,
+            abbott_mode: false,
+            abbott_project_index: 0,
         }
     }
 }

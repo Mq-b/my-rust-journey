@@ -7,7 +7,8 @@ pub struct BarcodeResult {
     pub format_name: String,
 }
 
-pub fn generate_barcode(config: &Config) -> anyhow::Result<BarcodeResult> {
+/// Generate barcode image without saving to disk.
+pub fn make_barcode_image(config: &Config) -> anyhow::Result<BarcodeResult> {
     use zxingcpp::*;
 
     const FORMATS: [&str; 8] = [
@@ -58,7 +59,7 @@ pub fn generate_barcode(config: &Config) -> anyhow::Result<BarcodeResult> {
     )?;
 
     let mut gray_image = image::GrayImage::from(&img);
-    // 按物理尺寸缩放（300 DPI）
+    // Scale to physical size (300 DPI)
     if config.width_cm > 0.0 && config.height_cm > 0.0 {
         let target_w = (config.width_cm / 2.54 * 300.0).round() as u32;
         let target_h = (config.height_cm / 2.54 * 300.0).round() as u32;
@@ -69,15 +70,10 @@ pub fn generate_barcode(config: &Config) -> anyhow::Result<BarcodeResult> {
                 target_h,
                 image::imageops::FilterType::Nearest,
             );
-            println!(
-                "Scaled to {}x{} px for {} cm x {} cm at 300 DPI",
-                target_w, target_h, config.width_cm, config.height_cm
-            );
         }
     }
     let width = gray_image.width();
     let height = gray_image.height();
-    save_png_300dpi(&gray_image, "out.png")?;
 
     Ok(BarcodeResult {
         gray_image,
@@ -87,7 +83,14 @@ pub fn generate_barcode(config: &Config) -> anyhow::Result<BarcodeResult> {
     })
 }
 
-/// 将灰度图转换为 Slint 可用的图像
+/// Generate barcode and save to out.png.
+pub fn generate_barcode(config: &Config) -> anyhow::Result<BarcodeResult> {
+    let result = make_barcode_image(config)?;
+    save_png_300dpi(&result.gray_image, "out.png")?;
+    Ok(result)
+}
+
+/// Convert grayscale image to Slint Image.
 pub fn gray_to_slint_image(gray: &image::GrayImage) -> slint::Image {
     let w = gray.width();
     let h = gray.height();
@@ -99,12 +102,11 @@ pub fn gray_to_slint_image(gray: &image::GrayImage) -> slint::Image {
     slint::Image::from_rgba8(buffer)
 }
 
-/// 以 300 DPI 元数据保存灰度 PNG（pHYs chunk: 11811 像素/米）
+/// Save grayscale PNG with 300 DPI metadata (pHYs chunk: 11811 px/m).
 pub fn save_png_300dpi(
     gray: &image::GrayImage,
     path: impl AsRef<std::path::Path>,
 ) -> anyhow::Result<()> {
-    // 300 DPI → DPM = 300 / 0.0254 ≈ 11811 像素/米
     const PIXELS_PER_METER: u32 = 11811;
 
     let file = std::fs::File::create(path)?;
