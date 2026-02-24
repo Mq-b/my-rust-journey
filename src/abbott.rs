@@ -72,7 +72,7 @@ fn default_abbott_projects() -> AbbottProjectsConfig {
                     short_prefix: "H".to_string(),
                     long_prefix: "G".to_string(),
                     project_bits: "6201010300001".to_string(),
-                    long_trailing: "H0000162001AAAG".to_string(),
+                    long_trailing: "H0000162001AAAGOAABTZAAINQABPTEBCAUMDXUWW00000AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA".to_string(),
                 }],
             },
             AbbottProject {
@@ -84,8 +84,8 @@ fn default_abbott_projects() -> AbbottProjectsConfig {
                     name: "CK-MB".to_string(),
                     short_prefix: "H".to_string(),
                     long_prefix: "G".to_string(),
-                    project_bits: "0300062024701".to_string(),
-                    long_trailing: "H0000000000AAAB".to_string(),
+                    project_bits: "4712010300001".to_string(),
+                    long_trailing: "H0000000000AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA00000AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA".to_string(),
                 }],
             },
             AbbottProject {
@@ -95,25 +95,25 @@ fn default_abbott_projects() -> AbbottProjectsConfig {
                 expiry_format: "DDMMYYYY".to_string(),
                 reagents: vec![
                     AbbottReagent {
-                        name: "Myo-1".to_string(),
+                        name: "Myo-红".to_string(),
+                        short_prefix: "G".to_string(),
+                        long_prefix: "G".to_string(),
+                        project_bits: "4612010300002".to_string(),
+                        long_trailing: "HJ000000000AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA00000AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA".to_string(),
+                    },
+                    AbbottReagent {
+                        name: "Myo-黄".to_string(),
                         short_prefix: "H".to_string(),
                         long_prefix: "G".to_string(),
                         project_bits: "4612010300002".to_string(),
-                        long_trailing: "HJ000000000AAAA".to_string(),
+                        long_trailing: "HJ000000000AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA00000AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA".to_string(),
                     },
                     AbbottReagent {
-                        name: "Myo-2".to_string(),
+                        name: "Myo-绿".to_string(),
                         short_prefix: "J".to_string(),
                         long_prefix: "G".to_string(),
                         project_bits: "4612010300002".to_string(),
-                        long_trailing: "HJ000000000AAAA".to_string(),
-                    },
-                    AbbottReagent {
-                        name: "Myo-3".to_string(),
-                        short_prefix: "L".to_string(),
-                        long_prefix: "G".to_string(),
-                        project_bits: "4612010300002".to_string(),
-                        long_trailing: "HJ000000000AAAA".to_string(),
+                        long_trailing: "HJ000000000AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA00000AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA".to_string(),
                     },
                 ],
             },
@@ -124,25 +124,25 @@ fn default_abbott_projects() -> AbbottProjectsConfig {
                 expiry_format: "DDMMYYYY".to_string(),
                 reagents: vec![
                     AbbottReagent {
-                        name: "BNP-1".to_string(),
+                        name: "BNP-红".to_string(),
+                        short_prefix: "G".to_string(),
+                        long_prefix: "G".to_string(),
+                        project_bits: "0000000000000".to_string(),
+                        long_trailing: "H0000000000AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA00000AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA".to_string(),
+                    },
+                    AbbottReagent {
+                        name: "BNP-黄".to_string(),
                         short_prefix: "H".to_string(),
                         long_prefix: "G".to_string(),
                         project_bits: "0000000000000".to_string(),
-                        long_trailing: "H0000000000AAAC".to_string(),
+                        long_trailing: "H0000000000AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA00000AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA".to_string(),
                     },
                     AbbottReagent {
-                        name: "BNP-2".to_string(),
+                        name: "BNP-绿".to_string(),
                         short_prefix: "J".to_string(),
                         long_prefix: "G".to_string(),
                         project_bits: "0000000000000".to_string(),
-                        long_trailing: "H0000000000AAAC".to_string(),
-                    },
-                    AbbottReagent {
-                        name: "BNP-3".to_string(),
-                        short_prefix: "L".to_string(),
-                        long_prefix: "G".to_string(),
-                        project_bits: "0000000000000".to_string(),
-                        long_trailing: "H0000000000AAAC".to_string(),
+                        long_trailing: "H0000000000AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA00000AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA".to_string(),
                     },
                 ],
             },
@@ -168,6 +168,7 @@ pub fn encode_expiry(date_str: &str, fmt: &str) -> String {
     }
 }
 
+/// Build short barcode content: A{SN}{short_prefix}{control_no_number}{control_no_suffix}
 pub fn build_short_content(
     sn: &str,
     reagent: &AbbottReagent,
@@ -180,13 +181,17 @@ pub fn build_short_content(
     )
 }
 
+/// Build long barcode content:
+/// A{SN}{long_prefix}{control_no_number}{control_no_suffix}{expiry_encoded}{project_bits}{long_trailing}
 pub fn build_long_content(
     sn: &str,
     reagent: &AbbottReagent,
     control_no_number: &str,
     control_no_suffix: &str,
     expiry_encoded: &str,
+    project_bits_override: Option<&str>,
 ) -> String {
+    let bits = project_bits_override.unwrap_or(&reagent.project_bits);
     format!(
         "A{}{}{}{}{}{}{}",
         sn,
@@ -194,7 +199,7 @@ pub fn build_long_content(
         control_no_number,
         control_no_suffix,
         expiry_encoded,
-        reagent.project_bits,
+        bits,
         reagent.long_trailing,
     )
 }
@@ -226,7 +231,7 @@ fn short_config(content: &str) -> Config {
     }
 }
 
-/// Standard PDF417, 2×4 cm
+/// Standard PDF417, height 2.0cm × width 4.0cm
 fn long_config(content: &str) -> Config {
     Config {
         content: content.to_string(),
@@ -234,59 +239,71 @@ fn long_config(content: &str) -> Config {
         scale_index: 1,   // 2x
         rotate_index: 0,  // 0°
         columns_index: 1, // 2 columns
-        eclevel_index: 2, // default EC level
-        width_cm: 2.0,
-        height_cm: 4.0,
+        eclevel_index: 2,
+        width_cm: 4.0,
+        height_cm: 2.0,
         abbott_mode: false,
         abbott_project_index: 0,
     }
 }
 
-/// Generate all barcodes for an Abbott project (short + long per reagent).
+/// Generate all barcodes for an Abbott project.
+///
+/// Parameters:
+/// - `sns`: one SN per reagent (falls back to last if shorter)
+/// - `control_no_number`: the batch number string (e.g. "80001")
+/// - `expiry`: date in "YYYY-MM-DD" format
+/// - `project_bits_override`: if non-empty, override reagent project_bits for all long barcodes
 pub fn generate_abbott_barcodes(
     project: &AbbottProject,
-    sns: &[String],   // one SN per reagent; if shorter, repeats last
+    sns: &[String],
     control_no_number: &str,
     expiry: &str,
+    project_bits_override: &str,
 ) -> Result<Vec<AbbottBarcodeItem>> {
     let expiry_encoded = encode_expiry(expiry, &project.expiry_format);
+    let bits_override = if project_bits_override.is_empty() {
+        None
+    } else {
+        Some(project_bits_override)
+    };
     let mut items = Vec::new();
 
     for (i, reagent) in project.reagents.iter().enumerate() {
         let sn = sns.get(i).or_else(|| sns.last()).map(String::as_str).unwrap_or("");
 
-        // Short barcode
-        let short_content = build_short_content(sn, reagent, control_no_number, &project.control_no_suffix);
-        let short_result = make_barcode_image(&short_config(&short_content))?;
-        items.push(AbbottBarcodeItem {
-            label: format!("{} - 短码", reagent.name),
-            content: short_content,
-            slint_image: gray_to_slint_image(&short_result.gray_image),
-            gray_image: short_result.gray_image,
-        });
-
-        // Long barcode
+        // Long barcode (红码) - generated first to match document order
         let long_content = build_long_content(
             sn,
             reagent,
             control_no_number,
             &project.control_no_suffix,
             &expiry_encoded,
+            bits_override,
         );
         let long_result = make_barcode_image(&long_config(&long_content))?;
         items.push(AbbottBarcodeItem {
-            label: format!("{} - 长码", reagent.name),
+            label: format!("{} 长码", reagent.name),
             content: long_content,
             slint_image: gray_to_slint_image(&long_result.gray_image),
             gray_image: long_result.gray_image,
+        });
+
+        // Short barcode (短码)
+        let short_content = build_short_content(sn, reagent, control_no_number, &project.control_no_suffix);
+        let short_result = make_barcode_image(&short_config(&short_content))?;
+        items.push(AbbottBarcodeItem {
+            label: format!("{} 短码", reagent.name),
+            content: short_content,
+            slint_image: gray_to_slint_image(&short_result.gray_image),
+            gray_image: short_result.gray_image,
         });
     }
 
     Ok(items)
 }
 
-/// Export all generated barcodes to a directory.  Files are named
-/// `{index:02}_{label}.png` (spaces replaced by underscores).
+/// Export all generated barcodes to a directory.
 pub fn export_abbott_barcodes(items: &[AbbottBarcodeItem], dir: &std::path::Path) -> Result<()> {
     fs::create_dir_all(dir)?;
     for (i, item) in items.iter().enumerate() {

@@ -2,7 +2,7 @@
 
 一个用于学习 Rust 的标准项目结构，方便编写和运行多个示例程序。
 
-![1](./assets/image/1.png)
+![1](./assets/images/1.png)
 
 ## 项目结构
 

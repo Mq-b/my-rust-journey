@@ -31,6 +31,7 @@ export component BarcodeWindow inherits Window {
     in-out property <string> abbott-sn3: "";
     in-out property <string> abbott-control-no: "";
     in-out property <string> abbott-expiry: "";
+    in-out property <string> abbott-project-bits: "";
     in-out property <[string]> abbott-result-labels: [];
     in-out property <[string]> abbott-result-contents: [];
     in-out property <[image]> abbott-result-images: [];
@@ -51,9 +52,10 @@ export component BarcodeWindow inherits Window {
     callback abbott-generate();
     callback abbott-export-all();
     callback abbott-project-changed(int);
+    callback abbott-copy-content(int);
 
-    width: 520px;
-    height: 680px;
+    width: 560px;
+    height: 720px;
     title: "雅培条码生成器";
     icon: @image-url("../assets/icon.svg");
 
@@ -316,18 +318,19 @@ export component BarcodeWindow inherits Window {
         // ── Abbott mode ──────────────────────────────────────────────────
         if root.abbott-mode: VerticalBox {
             padding: 0px;
-            spacing: 8px;
+            spacing: 6px;
 
-            // Project dropdown
+            // 项目选择
             HorizontalBox {
                 padding: 0;
                 spacing: 8px;
                 Text {
                     text: "项目:";
                     vertical-alignment: center;
-                    min-width: 80px;
+                    min-width: 72px;
                     font-weight: 700;
                     font-size: 13px;
+                    horizontal-stretch: 0;
                 }
                 ComboBox {
                     model: root.abbott-project-names;
@@ -339,70 +342,17 @@ export component BarcodeWindow inherits Window {
                 }
             }
 
-            // SN码 1 (always shown)
-            HorizontalBox {
-                padding: 0;
-                spacing: 8px;
-                Text {
-                    text: root.abbott-reagent-count > 1 ? "SN码 1:" : "SN码:";
-                    vertical-alignment: center;
-                    min-width: 80px;
-                    font-weight: 700;
-                    font-size: 13px;
-                }
-                LineEdit {
-                    text <=> root.abbott-sn1;
-                    placeholder-text: "请输入SN码";
-                    horizontal-stretch: 1;
-                }
-            }
-
-            // SN码 2 (multi-reagent only)
-            if root.abbott-reagent-count >= 2: HorizontalBox {
-                padding: 0;
-                spacing: 8px;
-                Text {
-                    text: "SN码 2:";
-                    vertical-alignment: center;
-                    min-width: 80px;
-                    font-weight: 700;
-                    font-size: 13px;
-                }
-                LineEdit {
-                    text <=> root.abbott-sn2;
-                    placeholder-text: "请输入SN码";
-                    horizontal-stretch: 1;
-                }
-            }
-
-            // SN码 3 (3-reagent only)
-            if root.abbott-reagent-count >= 3: HorizontalBox {
-                padding: 0;
-                spacing: 8px;
-                Text {
-                    text: "SN码 3:";
-                    vertical-alignment: center;
-                    min-width: 80px;
-                    font-weight: 700;
-                    font-size: 13px;
-                }
-                LineEdit {
-                    text <=> root.abbott-sn3;
-                    placeholder-text: "请输入SN码";
-                    horizontal-stretch: 1;
-                }
-            }
-
-            // Control No. (批号)
+            // Control No. 批号
             HorizontalBox {
                 padding: 0;
                 spacing: 8px;
                 Text {
                     text: "批号:";
                     vertical-alignment: center;
-                    min-width: 80px;
+                    min-width: 72px;
                     font-weight: 700;
                     font-size: 13px;
+                    horizontal-stretch: 0;
                 }
                 LineEdit {
                     text <=> root.abbott-control-no;
@@ -418,9 +368,10 @@ export component BarcodeWindow inherits Window {
                 Text {
                     text: "有效期:";
                     vertical-alignment: center;
-                    min-width: 80px;
+                    min-width: 72px;
                     font-weight: 700;
                     font-size: 13px;
+                    horizontal-stretch: 0;
                 }
                 LineEdit {
                     text <=> root.abbott-expiry;
@@ -429,7 +380,111 @@ export component BarcodeWindow inherits Window {
                 }
             }
 
-            // Buttons
+            // 项目位（可选覆盖）
+            HorizontalBox {
+                padding: 0;
+                spacing: 8px;
+                Text {
+                    text: "项目位:";
+                    vertical-alignment: center;
+                    min-width: 72px;
+                    font-weight: 700;
+                    font-size: 13px;
+                    horizontal-stretch: 0;
+                }
+                LineEdit {
+                    text <=> root.abbott-project-bits;
+                    placeholder-text: "留空则使用默认项目位";
+                    horizontal-stretch: 1;
+                }
+            }
+
+            // SN码区域
+            Rectangle {
+                background: Palette.alternate-background;
+                border-radius: 4px;
+                border-width: 1px;
+                border-color: Palette.border;
+
+                VerticalLayout {
+                    padding: 8px;
+                    spacing: 6px;
+
+                    // SN码标题行
+                    HorizontalBox {
+                        padding: 0;
+                        spacing: 0;
+                        Text {
+                            text: "SN 码";
+                            font-weight: 700;
+                            font-size: 12px;
+                            color: #888;
+                        }
+                        Text {
+                            text: root.abbott-reagent-count > 1 ? "（每组试剂各填一个，Control No. 必须相同）" : "";
+                            font-size: 11px;
+                            color: #aaa;
+                            vertical-alignment: center;
+                        }
+                    }
+
+                    // SN码 1 (always shown)
+                    HorizontalBox {
+                        padding: 0;
+                        spacing: 8px;
+                        Text {
+                            text: root.abbott-reagent-count > 1 ? "SN 1:" : "SN:";
+                            vertical-alignment: center;
+                            min-width: 40px;
+                            horizontal-stretch: 0;
+                            font-size: 13px;
+                        }
+                        LineEdit {
+                            text <=> root.abbott-sn1;
+                            placeholder-text: "请输入SN码（如 01137）";
+                            horizontal-stretch: 1;
+                        }
+                    }
+
+                    // SN码 2 (multi-reagent only)
+                    if root.abbott-reagent-count >= 2: HorizontalBox {
+                        padding: 0;
+                        spacing: 8px;
+                        Text {
+                            text: "SN 2:";
+                            vertical-alignment: center;
+                            min-width: 40px;
+                            horizontal-stretch: 0;
+                            font-size: 13px;
+                        }
+                        LineEdit {
+                            text <=> root.abbott-sn2;
+                            placeholder-text: "请输入SN码";
+                            horizontal-stretch: 1;
+                        }
+                    }
+
+                    // SN码 3 (3-reagent only)
+                    if root.abbott-reagent-count >= 3: HorizontalBox {
+                        padding: 0;
+                        spacing: 8px;
+                        Text {
+                            text: "SN 3:";
+                            vertical-alignment: center;
+                            min-width: 40px;
+                            horizontal-stretch: 0;
+                            font-size: 13px;
+                        }
+                        LineEdit {
+                            text <=> root.abbott-sn3;
+                            placeholder-text: "请输入SN码";
+                            horizontal-stretch: 1;
+                        }
+                    }
+                }
+            }
+
+            // 操作按钮
             HorizontalBox {
                 padding: 0;
                 spacing: 10px;
@@ -439,23 +494,23 @@ export component BarcodeWindow inherits Window {
                     clicked => { root.abbott-generate(); }
                 }
                 Button {
-                    text: "导出全部";
+                    text: "导出全部图片";
                     clicked => { root.abbott-export-all(); }
                 }
             }
 
-            // Results area
+            // 结果区域
             Rectangle {
                 background: Palette.alternate-background;
                 border-radius: 6px;
                 border-width: 1px;
                 border-color: Palette.border;
                 vertical-stretch: 1;
-                min-height: 240px;
+                min-height: 220px;
                 clip: true;
 
                 if root.abbott-result-labels.length == 0: Text {
-                    text: "生成结果将在此显示";
+                    text: "填写上方信息后点击「生成条码」";
                     color: #808080;
                     font-size: 13px;
                     horizontal-alignment: center;
@@ -468,31 +523,64 @@ export component BarcodeWindow inherits Window {
 
                     VerticalLayout {
                         padding: 8px;
-                        spacing: 10px;
+                        spacing: 12px;
 
-                        for lbl[i] in root.abbott-result-labels: VerticalLayout {
-                            spacing: 4px;
+                        for lbl[i] in root.abbott-result-labels: Rectangle {
+                            background: Palette.background;
+                            border-radius: 4px;
+                            border-width: 1px;
+                            border-color: Palette.border;
 
-                            Text {
-                                text: lbl;
-                                font-weight: 700;
-                                font-size: 12px;
-                                color: Palette.foreground;
-                            }
+                            VerticalLayout {
+                                padding: 8px;
+                                spacing: 6px;
 
-                            Text {
-                                text: root.abbott-result-contents[i];
-                                font-size: 10px;
-                                color: #666;
-                                overflow: elide;
-                            }
+                                // 标题行 + 复制按钮
+                                HorizontalLayout {
+                                    spacing: 8px;
+                                    alignment: stretch;
 
-                            Image {
-                                source: root.abbott-result-images[i];
-                                image-fit: contain;
-                                image-rendering: pixelated;
-                                height: 80px;
-                                horizontal-alignment: left;
+                                    Text {
+                                        text: lbl;
+                                        font-weight: 700;
+                                        font-size: 13px;
+                                        color: Palette.foreground;
+                                        vertical-alignment: center;
+                                        horizontal-stretch: 1;
+                                    }
+
+                                    Button {
+                                        text: "复制内容";
+                                        clicked => { root.abbott-copy-content(i); }
+                                    }
+                                }
+
+                                // 条码内容文本（完整显示，可换行）
+                                Rectangle {
+                                    background: Palette.alternate-background;
+                                    border-radius: 3px;
+
+                                    HorizontalLayout {
+                                        padding: 4px;
+                                        Text {
+                                            text: root.abbott-result-contents[i];
+                                            font-size: 12px;
+                                            font-weight: 700;
+                                            font-family: "monospace";
+                                            color: Palette.foreground;
+                                            wrap: word-wrap;
+                                        }
+                                    }
+                                }
+
+                                // 条码预览图
+                                Image {
+                                    source: root.abbott-result-images[i];
+                                    image-fit: contain;
+                                    image-rendering: pixelated;
+                                    height: 72px;
+                                    horizontal-alignment: left;
+                                }
                             }
                         }
                     }
@@ -517,16 +605,16 @@ export component BarcodeWindow inherits Window {
     }
 
     Timer {
-        interval: 750ms;
+        interval: 1500ms;
         running: toast-visible;
         triggered => { root.toast-visible = false; }
     }
 
     Rectangle {
         opacity: root.toast-alpha;
-        x: (parent.width - 260px) / 2;
+        x: (parent.width - 280px) / 2;
         y: parent.height - 72px;
-        width: 260px;
+        width: 280px;
         height: 40px;
         background: #333333;
         border-radius: 20px;
