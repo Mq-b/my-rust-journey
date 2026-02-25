@@ -57,6 +57,34 @@
       ]
     },
     {
+      "name": "PCT",
+      "control_no_suffix": "UN25",
+      "control_no_default_number": "60001",
+      "expiry_format": "DDMMYYYY",
+      "reagents": [
+        {
+          "name": "PCT 红",
+          "short_prefix": "H",
+          "long_prefix": "G",
+          "generates_long": true,
+          "generates_short": false,
+          "project_bits": "4001010250001",
+          "long_trailing": "H0000000000AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA00000AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          "default_sn": "03326"
+        },
+        {
+          "name": "PCT 黄",
+          "short_prefix": "H",
+          "long_prefix": "G",
+          "generates_long": false,
+          "generates_short": true,
+          "project_bits": "4001010250001",
+          "long_trailing": "",
+          "default_sn": "03190"
+        }
+      ]
+    },
+    {
       "name": "Myo",
       "control_no_suffix": "UN24",
       "control_no_default_number": "70001",
