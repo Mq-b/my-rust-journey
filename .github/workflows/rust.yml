@@ -80,7 +80,8 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           mkdir -p dist/examples
-          cp target/release/rust-learning dist/
+          cp target/release/AbbottBarcodeGeneration dist/
+          cp target/release/LotID-Codec dist/
           cp -r assets dist/
           find target/release/examples -maxdepth 1 -type f -executable -exec cp {} dist/examples/ \;
 
@@ -89,7 +90,8 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path dist/examples | Out-Null
-          Copy-Item target\release\rust-learning.exe dist\
+          Copy-Item target\release\AbbottBarcodeGeneration.exe dist\
+          Copy-Item target\release\LotID-Codec.exe dist\
           Copy-Item -Recurse assets dist\
           Get-ChildItem target\release\examples\*.exe | Copy-Item -Destination dist\examples\
 
