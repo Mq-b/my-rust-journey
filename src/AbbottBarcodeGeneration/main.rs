@@ -4,11 +4,11 @@ mod barcode;
 mod config;
 
 use abbott::{
-    export_abbott_barcodes, generate_abbott_barcodes, load_abbott_projects, AbbottBarcodeItem,
-    AbbottProjectsConfig,
+    AbbottBarcodeItem, AbbottProjectsConfig, export_abbott_barcodes, generate_abbott_barcodes,
+    load_abbott_projects,
 };
 use barcode::{generate_barcode, gray_to_slint_image, save_png_300dpi};
-use config::{load_config, save_config, Config};
+use config::{Config, load_config, save_config};
 use rfd::FileDialog;
 use slint::{ModelRc, VecModel};
 use std::sync::{Arc, Mutex};
@@ -147,7 +147,11 @@ fn apply_project_defaults(window: &BarcodeWindow, project: &abbott::AbbottProjec
         window.set_abbott_project_bits(first_long.project_bits.clone().into());
     }
     // 各试剂槽的默认 SN
-    let sns: Vec<&str> = project.reagents.iter().map(|r| r.default_sn.as_str()).collect();
+    let sns: Vec<&str> = project
+        .reagents
+        .iter()
+        .map(|r| r.default_sn.as_str())
+        .collect();
     window.set_abbott_sn1(sns.first().copied().unwrap_or("").into());
     window.set_abbott_sn2(sns.get(1).copied().unwrap_or("").into());
     window.set_abbott_sn3(sns.get(2).copied().unwrap_or("").into());
@@ -181,8 +185,11 @@ fn setup_abbott_callbacks(
             let window = window_weak.unwrap();
 
             // 每次生成前清空上次结果
-            window.set_abbott_result_labels(ModelRc::new(VecModel::<slint::SharedString>::default()));
-            window.set_abbott_result_contents(ModelRc::new(VecModel::<slint::SharedString>::default()));
+            window
+                .set_abbott_result_labels(ModelRc::new(VecModel::<slint::SharedString>::default()));
+            window.set_abbott_result_contents(ModelRc::new(
+                VecModel::<slint::SharedString>::default(),
+            ));
             window.set_abbott_result_images(ModelRc::new(VecModel::<slint::Image>::default()));
 
             let idx = window.get_abbott_project_index() as usize;

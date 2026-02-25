@@ -14,8 +14,12 @@ path = "src/lib.rs"
 
 # 主程序入口
 [[bin]]
-name = "rust-learning"
-path = "src/main.rs"
+name = "AbbottBarcodeGeneration"
+path = "src/AbbottBarcodeGeneration/main.rs"
+
+[[bin]]
+name = "LotID-Codec"
+path = "src/LotID-Codec/main.rs"
 
 [dependencies]
 anyhow = "1.0.101"
