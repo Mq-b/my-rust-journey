@@ -106,8 +106,8 @@
           "long_prefix": "G",
           "generates_long": true,
           "generates_short": false,
-          "project_bits": "0000000000000",
-          "long_trailing": "H0000000000AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA00000AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          "project_bits": "7401010300002",
+          "long_trailing": "HJ000000000AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA00000AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
           "default_sn": "01283"
         },
         {
