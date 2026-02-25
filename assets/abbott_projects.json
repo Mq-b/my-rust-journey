@@ -4,87 +4,131 @@
       "name": "CTNI",
       "control_no_suffix": "UD00",
       "control_no_default_number": "80001",
-      "expiry_format": "00DDMMYYYY",
+      "expiry_format": "DDMMYYYY",
       "reagents": [
         {
-          "name": "CTNI",
+          "name": "CTNI 红",
           "short_prefix": "H",
           "long_prefix": "G",
+          "generates_long": true,
+          "generates_short": false,
           "project_bits": "6201010300001",
-          "long_trailing": "H0000162001AAAG"
+          "long_trailing": "H0000162001AAAGOAABTZAAINQABPTEBCAUMDXUWW00000AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          "default_sn": "01137"
+        },
+        {
+          "name": "CTNI 黄",
+          "short_prefix": "H",
+          "long_prefix": "G",
+          "generates_long": false,
+          "generates_short": true,
+          "project_bits": "6201010300001",
+          "long_trailing": "",
+          "default_sn": "01137"
         }
       ]
     },
     {
       "name": "CK-MB",
       "control_no_suffix": "UN24",
-      "control_no_default_number": "80001",
+      "control_no_default_number": "90001",
       "expiry_format": "DDMMYYYY",
       "reagents": [
         {
-          "name": "CK-MB",
+          "name": "CK-MB 红",
           "short_prefix": "H",
           "long_prefix": "G",
-          "project_bits": "0300062024701",
-          "long_trailing": "H0000000000AAAB"
+          "generates_long": true,
+          "generates_short": false,
+          "project_bits": "4712010300001",
+          "long_trailing": "H0000000000AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA00000AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          "default_sn": "03157"
+        },
+        {
+          "name": "CK-MB 黄",
+          "short_prefix": "H",
+          "long_prefix": "G",
+          "generates_long": false,
+          "generates_short": true,
+          "project_bits": "4712010300001",
+          "long_trailing": "",
+          "default_sn": "06975"
         }
       ]
     },
     {
       "name": "Myo",
       "control_no_suffix": "UN24",
-      "control_no_default_number": "80001",
+      "control_no_default_number": "70001",
       "expiry_format": "DDMMYYYY",
       "reagents": [
         {
-          "name": "Myo-1",
+          "name": "Myo 红",
+          "short_prefix": "G",
+          "long_prefix": "G",
+          "generates_long": true,
+          "generates_short": false,
+          "project_bits": "4612010300002",
+          "long_trailing": "HJ000000000AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA00000AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          "default_sn": "03818"
+        },
+        {
+          "name": "Myo 黄",
           "short_prefix": "H",
           "long_prefix": "G",
+          "generates_long": false,
+          "generates_short": true,
           "project_bits": "4612010300002",
-          "long_trailing": "HJ000000000AAAA"
+          "long_trailing": "",
+          "default_sn": "02972"
         },
         {
-          "name": "Myo-2",
+          "name": "Myo 绿",
           "short_prefix": "J",
           "long_prefix": "G",
+          "generates_long": false,
+          "generates_short": true,
           "project_bits": "4612010300002",
-          "long_trailing": "HJ000000000AAAA"
-        },
-        {
-          "name": "Myo-3",
-          "short_prefix": "L",
-          "long_prefix": "G",
-          "project_bits": "4612010300002",
-          "long_trailing": "HJ000000000AAAA"
+          "long_trailing": "",
+          "default_sn": "03824"
         }
       ]
     },
     {
       "name": "BNP",
       "control_no_suffix": "UN24",
-      "control_no_default_number": "80001",
+      "control_no_default_number": "60001",
       "expiry_format": "DDMMYYYY",
       "reagents": [
         {
-          "name": "BNP-1",
+          "name": "BNP 红",
+          "short_prefix": "G",
+          "long_prefix": "G",
+          "generates_long": true,
+          "generates_short": false,
+          "project_bits": "0000000000000",
+          "long_trailing": "H0000000000AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA00000AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          "default_sn": "01283"
+        },
+        {
+          "name": "BNP 黄",
           "short_prefix": "H",
           "long_prefix": "G",
+          "generates_long": false,
+          "generates_short": true,
           "project_bits": "0000000000000",
-          "long_trailing": "H0000000000AAAC"
+          "long_trailing": "",
+          "default_sn": "00888"
         },
         {
-          "name": "BNP-2",
+          "name": "BNP 绿",
           "short_prefix": "J",
           "long_prefix": "G",
+          "generates_long": false,
+          "generates_short": true,
           "project_bits": "0000000000000",
-          "long_trailing": "H0000000000AAAC"
-        },
-        {
-          "name": "BNP-3",
-          "short_prefix": "L",
-          "long_prefix": "G",
-          "project_bits": "0000000000000",
-          "long_trailing": "H0000000000AAAC"
+          "long_trailing": "",
+          "default_sn": "00576"
         }
       ]
     }

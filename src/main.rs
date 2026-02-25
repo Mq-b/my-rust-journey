@@ -142,14 +142,15 @@ fn default_expiry() -> String {
 fn apply_project_defaults(window: &BarcodeWindow, project: &abbott::AbbottProject) {
     window.set_abbott_reagent_count(project.reagents.len() as i32);
     window.set_abbott_control_no(project.control_no_default_number.clone().into());
-    // 项目位：取第一个试剂的 project_bits
-    if let Some(first) = project.reagents.first() {
-        window.set_abbott_project_bits(first.project_bits.clone().into());
+    // 项目位：取第一个生成长码的试剂的 project_bits
+    if let Some(first_long) = project.reagents.iter().find(|r| r.generates_long) {
+        window.set_abbott_project_bits(first_long.project_bits.clone().into());
     }
-    // SN默认值
-    window.set_abbott_sn1("01137".into());
-    window.set_abbott_sn2("01137".into());
-    window.set_abbott_sn3("01137".into());
+    // 各试剂槽的默认 SN
+    let sns: Vec<&str> = project.reagents.iter().map(|r| r.default_sn.as_str()).collect();
+    window.set_abbott_sn1(sns.first().copied().unwrap_or("").into());
+    window.set_abbott_sn2(sns.get(1).copied().unwrap_or("").into());
+    window.set_abbott_sn3(sns.get(2).copied().unwrap_or("").into());
     // 有效期：当前时间+1个月
     window.set_abbott_expiry(default_expiry().into());
 }
@@ -335,8 +336,6 @@ fn main() {
     if let Some(project) = projects_cfg.projects.get(cfg.abbott_project_index) {
         apply_project_defaults(&window, project);
     }
-    // Always set expiry to today+1 month on startup
-    window.set_abbott_expiry(default_expiry().into());
 
     // Empty result models
     window.set_abbott_result_labels(ModelRc::new(VecModel::<slint::SharedString>::default()));
