@@ -33,15 +33,15 @@ fn main() {
     test_value(E::B);
 
     if let Some(1) = test_option(Some(1)) {
-        println!("相等");
+        println!("匹配");
     } else {
-        println!("不相等");
+        println!("不匹配");
     }
 
-    if let Some(3) = test_option(Some(3)) {
-        println!("相等");
+    if let Some(a) = test_option(Some(3)) {
+        println!("匹配 {a}");
     } else {
-        println!("不相等");
+        println!("不匹配");
     }
 
     test_option(None);
