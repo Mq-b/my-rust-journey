@@ -1,0 +1,370 @@
+import {
+    Button,
+    LineEdit,
+    HorizontalBox,
+    VerticalBox,
+    GroupBox,
+} from "std-widgets.slint";
+
+export component LotIdWindow inherits Window {
+    title: "LotID 编解码工具";
+    min-width: 420px;
+    min-height: 620px;
+    preferred-width: 420px;
+    preferred-height: 620px;
+    in-out property <string> id-input: "";
+    in-out property <string> lot-input: "";
+    in-out property <string> decode-input: "";
+    in-out property <string> code-result: "";
+    in-out property <string> decode-id: "";
+    in-out property <string> decode-lot: "";
+    in-out property <string> status: "请输入 ID 和 Lot 进行编码，或输入3个字符进行解码";
+    in-out property <image> preview;
+    in-out property <bool> has-preview: false;
+    callback do-encode();
+    callback do-decode();
+    callback copy-image();
+    callback save-image();
+    callback copy-text();
+    VerticalLayout {
+        padding: 12px;
+        spacing: 0px;
+        Text {
+            text: "LotID 编解码工具";
+            font-size: 15px;
+            font-weight: 700;
+            horizontal-alignment: center;
+        }
+
+        Rectangle {
+            height: 10px;
+        }
+
+        // ━━ 编码 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        // 分区标题行（带横线）
+        HorizontalLayout {
+            spacing: 8px;
+            alignment: stretch;
+            Text {
+                text: "编码";
+                font-size: 11px;
+                font-weight: 700;
+                color: #888888;
+                vertical-alignment: center;
+                horizontal-stretch: 0;
+            }
+
+            Rectangle {
+                height: 1px;
+                background: #444444;
+                vertical-stretch: 0;
+                y: parent.height / 2;
+                horizontal-stretch: 1;
+            }
+        }
+
+        Rectangle {
+            height: 6px;
+        }
+
+        HorizontalLayout {
+            spacing: 6px;
+            Text {
+                text: "ID:";
+                vertical-alignment: center;
+                horizontal-stretch: 0;
+                min-width: 30px;
+                font-weight: 700;
+                font-size: 13px;
+            }
+
+            LineEdit {
+                text <=> root.id-input;
+                placeholder-text: "0 – 255";
+                horizontal-stretch: 1;
+                accepted => {
+                    root.do-encode();
+                }
+            }
+
+            Text {
+                text: "Lot:";
+                vertical-alignment: center;
+                horizontal-stretch: 0;
+                min-width: 30px;
+                font-weight: 700;
+                font-size: 13px;
+            }
+
+            LineEdit {
+                text <=> root.lot-input;
+                placeholder-text: "0 – 255";
+                horizontal-stretch: 1;
+                accepted => {
+                    root.do-encode();
+                }
+            }
+        }
+
+        Rectangle {
+            height: 6px;
+        }
+
+        HorizontalLayout {
+            spacing: 0px;
+            alignment: end;
+            Button {
+                text: "生成编码";
+                clicked => {
+                    root.do-encode();
+                }
+            }
+        }
+
+        Rectangle {
+            height: 14px;
+        }
+
+        // ━━ 解码 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        HorizontalLayout {
+            spacing: 8px;
+            alignment: stretch;
+            Text {
+                text: "解码";
+                font-size: 11px;
+                font-weight: 700;
+                color: #888888;
+                vertical-alignment: center;
+                horizontal-stretch: 0;
+            }
+
+            Rectangle {
+                height: 1px;
+                background: #444444;
+                vertical-stretch: 0;
+                y: parent.height / 2;
+                horizontal-stretch: 1;
+            }
+        }
+
+        Rectangle {
+            height: 6px;
+        }
+
+        HorizontalLayout {
+            spacing: 6px;
+            Text {
+                text: "字符:";
+                vertical-alignment: center;
+                horizontal-stretch: 0;
+                min-width: 36px;
+                font-weight: 700;
+                font-size: 13px;
+            }
+
+            LineEdit {
+                text <=> root.decode-input;
+                placeholder-text: "输入3个字符...";
+                horizontal-stretch: 1;
+                accepted => {
+                    root.do-decode();
+                }
+            }
+
+            Button {
+                text: "解码";
+                clicked => {
+                    root.do-decode();
+                }
+            }
+        }
+
+        // 解码结果（有结果时展开）
+        if root.decode-id != "": Rectangle {
+            height: 6px;
+        }
+        if root.decode-id != "": HorizontalLayout {
+            spacing: 8px;
+            alignment: start;
+            Text {
+                text: "ID:";
+                vertical-alignment: center;
+                font-weight: 700;
+                font-size: 13px;
+                horizontal-stretch: 0;
+                min-width: 30px;
+            }
+
+            Text {
+                text: root.decode-id;
+                vertical-alignment: center;
+                font-weight: 700;
+                font-size: 13px;
+                horizontal-stretch: 0;
+            }
+
+            Text {
+                text: "Lot:";
+                vertical-alignment: center;
+                font-weight: 700;
+                font-size: 13px;
+                horizontal-stretch: 0;
+                min-width: 30px;
+            }
+
+            Text {
+                text: root.decode-lot;
+                vertical-alignment: center;
+                font-weight: 700;
+                font-size: 13px;
+                horizontal-stretch: 0;
+            }
+        }
+        Rectangle {
+            height: 14px;
+        }
+
+        // ━━ 结果 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        HorizontalLayout {
+            spacing: 8px;
+            alignment: stretch;
+            Text {
+                text: "编码结果";
+                font-size: 11px;
+                font-weight: 700;
+                color: #888888;
+                vertical-alignment: center;
+                horizontal-stretch: 0;
+            }
+
+            Rectangle {
+                height: 1px;
+                background: #444444;
+                vertical-stretch: 0;
+                y: parent.height / 2;
+                horizontal-stretch: 1;
+            }
+        }
+
+        Rectangle {
+            height: 6px;
+        }
+
+        HorizontalLayout {
+            spacing: 8px;
+            alignment: center;
+            Text {
+                text: root.code-result != "" ? root.code-result : "---";
+                font-size: 32px;
+                font-weight: 700;
+                letter-spacing: 8px;
+                vertical-alignment: center;
+                horizontal-stretch: 1;
+                horizontal-alignment: center;
+            }
+
+            Button {
+                text: "复制文字";
+                enabled: root.code-result != "";
+                clicked => {
+                    root.copy-text();
+                }
+            }
+        }
+
+        Rectangle {
+            height: 14px;
+        }
+
+        // ━━ 条码 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        HorizontalLayout {
+            spacing: 8px;
+            alignment: stretch;
+            Text {
+                text: "DataMatrix 条码";
+                font-size: 11px;
+                font-weight: 700;
+                color: #888888;
+                vertical-alignment: center;
+                horizontal-stretch: 0;
+            }
+
+            Rectangle {
+                height: 1px;
+                background: #444444;
+                vertical-stretch: 0;
+                y: parent.height / 2;
+                horizontal-stretch: 1;
+            }
+        }
+
+        Rectangle {
+            height: 6px;
+        }
+
+        // 固定高度预览框
+        Rectangle {
+            height: 180px;
+            border-width: 1px;
+            border-color: #555555;
+            border-radius: 3px;
+            if !root.has-preview: Text {
+                text: "生成编码后显示条码";
+                horizontal-alignment: center;
+                vertical-alignment: center;
+                color: #666666;
+            }
+            if root.has-preview: Image {
+                source: root.preview;
+                image-fit: contain;
+                width: 100%;
+                height: 100%;
+            }
+        }
+
+        Rectangle {
+            height: 6px;
+        }
+
+        HorizontalLayout {
+            spacing: 6px;
+            alignment: end;
+            Button {
+                text: "另存为 PNG";
+                enabled: root.has-preview;
+                clicked => {
+                    root.save-image();
+                }
+            }
+            Button {
+                text: "复制图片";
+                enabled: root.has-preview;
+                clicked => {
+                    root.copy-image();
+                }
+            }
+        }
+
+        Rectangle {
+            height: 12px;
+        }
+
+        // ━━ 状态栏 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        Rectangle {
+            height: 1px;
+            background: #333333;
+        }
+
+        Rectangle {
+            height: 4px;
+        }
+
+        Text {
+            text: root.status;
+            font-size: 11px;
+            color: #888888;
+            horizontal-alignment: left;
+            overflow: elide;
+        }
+    }
+}

@@ -18,8 +18,7 @@ fn test_input_int_array() -> anyhow::Result<()> {
         .read_line(&mut length_str)
         .expect("Failed to read line");
 
-    let mut length: i32 = 0;
-    length = match length_str.trim().parse() {
+    let length = match length_str.trim().parse() {
         Ok(num) => num,
         Err(_) => return Err(anyhow::anyhow!("不是数字串!")),
     };
