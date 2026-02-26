@@ -33,6 +33,7 @@ arboard = "3"
 png = "0.18.1"
 rfd = "0.17.0"
 chrono = "0.4.44"
+rand = "0.10.0"
 
 [build-dependencies]
 embed-resource = "1.0.0"
