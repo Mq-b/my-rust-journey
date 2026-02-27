@@ -2,6 +2,7 @@ import {
     Button,
     LineEdit,
     ComboBox,
+    CheckBox,
     VerticalBox,
     HorizontalBox,
     Palette,
@@ -49,10 +50,18 @@ export component BarcodeWindow inherits Window {
     callback reset-config();
     callback show-about();
     callback toggle-abbott-mode();
+    callback abbott-auth-submit(string, string);  // username, password
     callback abbott-generate();
     callback abbott-export-all();
     callback abbott-project-changed(int);
     callback abbott-copy-content(int);
+
+    // ── Auth dialog state ────────────────────────────────────────────────
+    in-out property <bool> auth-dialog-visible: false;
+    in-out property <string> auth-error: "";
+    in-out property <string> auth-saved-username: "";
+    in-out property <string> auth-saved-password: "";
+    in-out property <bool> auth-remember: false;
 
     width: 560px;
     height: 720px;
@@ -87,7 +96,16 @@ export component BarcodeWindow inherits Window {
             title: "设置";
             MenuItem {
                 title: root.abbott-mode ? "✓ 雅培项目" : "  雅培项目";
-                activated => { root.toggle-abbott-mode(); }
+                activated => {
+                    if root.abbott-mode {
+                        // Already in Abbott mode: toggle off directly
+                        root.toggle-abbott-mode();
+                    } else {
+                        // Need authentication before entering Abbott mode
+                        root.auth-error = "";
+                        root.auth-dialog-visible = true;
+                    }
+                }
             }
             MenuItem {
                 title: "重置配置";
@@ -630,6 +648,103 @@ export component BarcodeWindow inherits Window {
         TouchArea {
             enabled: root.toast-visible;
             clicked => { root.toast-visible = false; }
+        }
+    }
+
+    // ── Auth dialog overlay (rendered last = on top) ──────────────────────
+    if root.auth-dialog-visible: Rectangle {
+        // Full-window overlay
+        x: 0;
+        y: 0;
+        width: root.width;
+        height: root.height;
+        background: #00000066;
+
+        Rectangle {
+            width: 300px;
+            height: root.auth-error != "" ? 268px : 240px;
+            x: (parent.width - self.width) / 2;
+            y: (parent.height - self.height) / 2;
+            background: Palette.background;
+            border-radius: 8px;
+            border-width: 1px;
+            border-color: Palette.border;
+
+            VerticalLayout {
+                padding: 20px;
+                spacing: 12px;
+                alignment: start;
+
+                Text {
+                    text: "雅培项目 - 身份验证";
+                    font-size: 14px;
+                    font-weight: 700;
+                    horizontal-alignment: center;
+                }
+
+                dlg-username := LineEdit {
+                    placeholder-text: "账号";
+                    input-type: text;
+                    text: root.auth-saved-username;
+                }
+
+                dlg-password := LineEdit {
+                    placeholder-text: "密码";
+                    input-type: password;
+                    text: root.auth-saved-password;
+                    accepted => {
+                        root.abbott-auth-submit(dlg-username.text, dlg-password.text);
+                    }
+                }
+
+                if root.auth-error != "": Text {
+                    text: root.auth-error;
+                    color: #e05252;
+                    font-size: 12px;
+                    horizontal-alignment: center;
+                }
+
+                // Remember credentials checkbox row
+                HorizontalLayout {
+                    spacing: 6px;
+                    alignment: start;
+
+                    remember-cb := CheckBox {
+                        checked: root.auth-remember;
+                        toggled => { root.auth-remember = self.checked; }
+                    }
+
+                    Text {
+                        text: "记住账号和密码";
+                        font-size: 13px;
+                        vertical-alignment: center;
+                    }
+                }
+
+                HorizontalLayout {
+                    spacing: 10px;
+
+                    Button {
+                        text: "取消";
+                        horizontal-stretch: 1;
+                        clicked => {
+                            root.auth-dialog-visible = false;
+                            root.auth-error = "";
+                            dlg-username.text = "";
+                            dlg-password.text = "";
+                        }
+                    }
+
+                    Button {
+                        text: "确认";
+                        primary: true;
+                        horizontal-stretch: 1;
+                        clicked => {
+                            root.abbott-auth-submit(dlg-username.text, dlg-password.text);
+                        }
+                    }
+                }
+            }
         }
     }
 }

@@ -8,7 +8,7 @@ use abbott::{
     load_abbott_projects,
 };
 use barcode::{generate_barcode, gray_to_slint_image, save_png_300dpi};
-use config::{Config, load_config, save_config};
+use config::{AuthConfig, Config, clear_auth_config, load_auth_config, load_config, save_auth_config, save_config};
 use rfd::FileDialog;
 use slint::{ModelRc, VecModel};
 use std::sync::{Arc, Mutex};
@@ -307,19 +307,45 @@ fn setup_menu_callbacks(window: &BarcodeWindow, projects_cfg: Arc<AbbottProjects
             .show();
     });
 
-    // Toggle Abbott mode from menu
+    // Toggle Abbott mode from menu (called only when turning OFF)
+    {
+        let window_weak = window.as_weak();
+        window.on_toggle_abbott_mode(move || {
+            let window = window_weak.unwrap();
+            window.set_abbott_mode(false);
+        });
+    }
+
+    // Abbott authentication: verify credentials before entering Abbott mode
     {
         let window_weak = window.as_weak();
         let cfg = projects_cfg.clone();
-        window.on_toggle_abbott_mode(move || {
+        window.on_abbott_auth_submit(move |username, password| {
             let window = window_weak.unwrap();
-            let new_mode = !window.get_abbott_mode();
-            window.set_abbott_mode(new_mode);
-            if new_mode {
+            if username.as_str() == "relia" && password.as_str() == "relia-abbott" {
+                // Save or clear credentials based on remember checkbox
+                if window.get_auth_remember() {
+                    save_auth_config(&AuthConfig {
+                        remember: true,
+                        username: username.to_string(),
+                        password: password.to_string(),
+                    });
+                    window.set_auth_saved_username(username.clone());
+                    window.set_auth_saved_password(password.clone());
+                } else {
+                    clear_auth_config();
+                    window.set_auth_saved_username("".into());
+                    window.set_auth_saved_password("".into());
+                }
+                window.set_auth_dialog_visible(false);
+                window.set_auth_error("".into());
+                window.set_abbott_mode(true);
                 let idx = window.get_abbott_project_index() as usize;
                 if let Some(project) = cfg.projects.get(idx) {
                     apply_project_defaults(&window, project);
                 }
+            } else {
+                window.set_auth_error("账号或密码错误，请重试".into());
             }
         });
     }
@@ -350,6 +376,14 @@ fn main() {
     window.set_abbott_result_images(ModelRc::new(VecModel::<slint::Image>::default()));
 
     restore_config(&window, &cfg);
+
+    // Load saved auth credentials and pre-fill dialog
+    let auth_cfg = load_auth_config();
+    if auth_cfg.remember {
+        window.set_auth_remember(true);
+        window.set_auth_saved_username(auth_cfg.username.clone().into());
+        window.set_auth_saved_password(auth_cfg.password.clone().into());
+    }
 
     let last_gray: Arc<Mutex<Option<image::GrayImage>>> = Arc::new(Mutex::new(None));
     let last_abbott: Arc<Mutex<Vec<AbbottBarcodeItem>>> = Arc::new(Mutex::new(Vec::new()));

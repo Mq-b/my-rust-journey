@@ -74,3 +74,48 @@ pub fn save_config(config: &Config) {
         let _ = fs::write(config_path(), data);
     }
 }
+
+// ── Auth config (stored in user's %APPDATA%) ─────────────────────────────────
+
+#[derive(serde::Serialize, serde::Deserialize, Default)]
+pub struct AuthConfig {
+    pub remember: bool,
+    #[serde(default)]
+    pub username: String,
+    #[serde(default)]
+    pub password: String,
+}
+
+fn auth_config_path() -> PathBuf {
+    let base = dirs::data_dir()
+        .unwrap_or_else(|| PathBuf::from("."));
+    base.join("AbbottBarcodeGen").join("auth.json")
+}
+
+pub fn load_auth_config() -> AuthConfig {
+    let path = auth_config_path();
+    fs::read_to_string(&path)
+        .ok()
+        .and_then(|s| serde_json::from_str(&s).ok())
+        .unwrap_or_default()
+}
+
+pub fn save_auth_config(cfg: &AuthConfig) {
+    let path = auth_config_path();
+    if let Some(parent) = path.parent() {
+        let _ = fs::create_dir_all(parent);
+    }
+    if let Ok(data) = serde_json::to_string_pretty(cfg) {
+        let _ = fs::write(path, data);
+    }
+}
+
+pub fn clear_auth_config() {
+    let path = auth_config_path();
+    if let Some(parent) = path.parent() {
+        let _ = fs::create_dir_all(parent);
+    }
+    if let Ok(data) = serde_json::to_string_pretty(&AuthConfig::default()) {
+        let _ = fs::write(path, data);
+    }
+}
