@@ -8,6 +8,7 @@ import {
 
 export component LotIdWindow inherits Window {
     title: "LotID 编解码工具";
+    icon: @image-url("../assets/lotid-icon.svg");
     min-width: 420px;
     min-height: 620px;
     preferred-width: 420px;
@@ -37,7 +38,12 @@ export component LotIdWindow inherits Window {
         }
 
         Rectangle {
-            height: 10px;
+            height: 1px;
+            background: #333333;
+        }
+
+        Rectangle {
+            height: 9px;
         }
 
         // ━━ 编码 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -303,27 +309,43 @@ export component LotIdWindow inherits Window {
         }
 
         // 固定高度预览框
-        Rectangle {
-            height: 180px;
-            border-width: 1px;
-            border-color: #555555;
-            border-radius: 3px;
-            if !root.has-preview: Text {
-                text: "生成编码后显示条码";
-                horizontal-alignment: center;
-                vertical-alignment: center;
-                color: #666666;
-            }
-            if root.has-preview: Image {
-                source: root.preview;
-                image-fit: contain;
-                width: 100%;
-                height: 100%;
+        HorizontalLayout {
+            alignment: center;
+            Rectangle {
+                height: 180px;
+                width: 180px;
+                border-width: 1px;
+                border-color: #555555;
+                border-radius: 3px;
+                if !root.has-preview: Text {
+                    text: "生成编码后显示DataMatrix";
+                    width: parent.width;
+                    height: parent.height;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                    color: #666666;
+                }
+                if root.has-preview: Image {
+                    source: root.preview;
+                    image-fit: contain;
+                    image-rendering: pixelated;
+                    width: parent.width;
+                    height: parent.height;
+                }
             }
         }
 
         Rectangle {
-            height: 6px;
+            height: 9px;
+        }
+
+        Rectangle {
+            height: 1px;
+            background: #333333;
+        }
+
+        Rectangle {
+            height: 9px;
         }
 
         HorizontalLayout {
