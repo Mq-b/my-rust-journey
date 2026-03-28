@@ -1,6 +1,7 @@
 fn main() {
     embed_resource::compile_for("./icon.rc", ["AbbottBarcodeGeneration"]);
     embed_resource::compile_for("./lotid-icon.rc", ["LotID-Codec"]);
+    embed_resource::compile_for("./LiteCrypt-icon", ["LiteCrypt"]);
 
     // ui/main.slint 作为统一入口，引入导出 了 barcode.slint 和 lotid.slint，
     // 一次编译即可将所有组件（BarcodeWindow、LotIdWindow）都写入生成代码，
