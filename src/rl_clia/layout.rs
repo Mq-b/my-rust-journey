@@ -146,13 +146,61 @@ pub fn save_layout_config(config: &LayoutConfig) -> Result<(), String> {
 fn reagent_layout() -> PageLayout {
     PageLayout {
         elements: vec![
-            text("title", sx(0.0), sy(18.0), LABEL_WIDTH, sy(44.0), ss(32.0), true),
-            text("subtitle1", sx(0.0), sy(60.0), LABEL_WIDTH, sy(30.0), ss(22.0), false),
-            text("subtitle2", sx(0.0), sy(88.0), LABEL_WIDTH, sy(24.0), ss(18.0), false),
+            text(
+                "title",
+                sx(0.0),
+                sy(18.0),
+                LABEL_WIDTH,
+                sy(44.0),
+                ss(32.0),
+                true,
+            ),
+            text(
+                "subtitle1",
+                sx(0.0),
+                sy(60.0),
+                LABEL_WIDTH,
+                sy(30.0),
+                ss(22.0),
+                false,
+            ),
+            text(
+                "subtitle2",
+                sx(0.0),
+                sy(88.0),
+                LABEL_WIDTH,
+                sy(24.0),
+                ss(18.0),
+                false,
+            ),
             barcode("barcode", sx(30.0), sy(130.0), sx(600.0), sy(300.0)),
-            text("lot", sx(0.0), sy(450.0), LABEL_WIDTH, sy(28.0), ss(23.0), false),
-            text("prod_date", sx(0.0), sy(490.0), LABEL_WIDTH, sy(28.0), ss(23.0), false),
-            text("expire_date", sx(0.0), sy(530.0), LABEL_WIDTH, sy(28.0), ss(23.0), false),
+            text(
+                "lot",
+                sx(0.0),
+                sy(450.0),
+                LABEL_WIDTH,
+                sy(28.0),
+                ss(23.0),
+                false,
+            ),
+            text(
+                "prod_date",
+                sx(0.0),
+                sy(490.0),
+                LABEL_WIDTH,
+                sy(28.0),
+                ss(23.0),
+                false,
+            ),
+            text(
+                "expire_date",
+                sx(0.0),
+                sy(530.0),
+                LABEL_WIDTH,
+                sy(28.0),
+                ss(23.0),
+                false,
+            ),
         ],
     }
 }
@@ -160,12 +208,52 @@ fn reagent_layout() -> PageLayout {
 fn calibration_layout() -> PageLayout {
     PageLayout {
         elements: vec![
-            text("title", sx(0.0), sy(18.0), LABEL_WIDTH, sy(44.0), ss(32.0), true),
-            text("subtitle1", sx(0.0), sy(60.0), LABEL_WIDTH, sy(30.0), ss(24.0), false),
+            text(
+                "title",
+                sx(0.0),
+                sy(18.0),
+                LABEL_WIDTH,
+                sy(44.0),
+                ss(32.0),
+                true,
+            ),
+            text(
+                "subtitle1",
+                sx(0.0),
+                sy(60.0),
+                LABEL_WIDTH,
+                sy(30.0),
+                ss(24.0),
+                false,
+            ),
             barcode("barcode", sx(30.0), sy(98.0), sx(600.0), sy(300.0)),
-            text("lot", sx(0.0), sy(418.0), LABEL_WIDTH, sy(28.0), ss(23.0), false),
-            text("prod_date", sx(0.0), sy(458.0), LABEL_WIDTH, sy(28.0), ss(23.0), false),
-            text("expire_date", sx(0.0), sy(498.0), LABEL_WIDTH, sy(28.0), ss(23.0), false),
+            text(
+                "lot",
+                sx(0.0),
+                sy(418.0),
+                LABEL_WIDTH,
+                sy(28.0),
+                ss(23.0),
+                false,
+            ),
+            text(
+                "prod_date",
+                sx(0.0),
+                sy(458.0),
+                LABEL_WIDTH,
+                sy(28.0),
+                ss(23.0),
+                false,
+            ),
+            text(
+                "expire_date",
+                sx(0.0),
+                sy(498.0),
+                LABEL_WIDTH,
+                sy(28.0),
+                ss(23.0),
+                false,
+            ),
         ],
     }
 }
@@ -173,11 +261,43 @@ fn calibration_layout() -> PageLayout {
 fn consumable_layout() -> PageLayout {
     PageLayout {
         elements: vec![
-            text("title", sx(0.0), sy(18.0), LABEL_WIDTH, sy(44.0), ss(32.0), true),
+            text(
+                "title",
+                sx(0.0),
+                sy(18.0),
+                LABEL_WIDTH,
+                sy(44.0),
+                ss(32.0),
+                true,
+            ),
             barcode("barcode", sx(30.0), sy(82.0), sx(600.0), sy(300.0)),
-            text("lot", sx(0.0), sy(402.0), LABEL_WIDTH, sy(28.0), ss(23.0), false),
-            text("prod_date", sx(0.0), sy(442.0), LABEL_WIDTH, sy(28.0), ss(23.0), false),
-            text("expire_date", sx(0.0), sy(482.0), LABEL_WIDTH, sy(28.0), ss(23.0), false),
+            text(
+                "lot",
+                sx(0.0),
+                sy(402.0),
+                LABEL_WIDTH,
+                sy(28.0),
+                ss(23.0),
+                false,
+            ),
+            text(
+                "prod_date",
+                sx(0.0),
+                sy(442.0),
+                LABEL_WIDTH,
+                sy(28.0),
+                ss(23.0),
+                false,
+            ),
+            text(
+                "expire_date",
+                sx(0.0),
+                sy(482.0),
+                LABEL_WIDTH,
+                sy(28.0),
+                ss(23.0),
+                false,
+            ),
         ],
     }
 }
@@ -185,12 +305,52 @@ fn consumable_layout() -> PageLayout {
 fn quality_layout() -> PageLayout {
     PageLayout {
         elements: vec![
-            text("title", sx(0.0), sy(18.0), LABEL_WIDTH, sy(44.0), ss(32.0), true),
-            text("subtitle1", sx(0.0), sy(60.0), LABEL_WIDTH, sy(30.0), ss(24.0), false),
+            text(
+                "title",
+                sx(0.0),
+                sy(18.0),
+                LABEL_WIDTH,
+                sy(44.0),
+                ss(32.0),
+                true,
+            ),
+            text(
+                "subtitle1",
+                sx(0.0),
+                sy(60.0),
+                LABEL_WIDTH,
+                sy(30.0),
+                ss(24.0),
+                false,
+            ),
             barcode("barcode", sx(30.0), sy(98.0), sx(600.0), sy(300.0)),
-            text("lot", sx(0.0), sy(418.0), LABEL_WIDTH, sy(28.0), ss(23.0), false),
-            text("prod_date", sx(0.0), sy(458.0), LABEL_WIDTH, sy(28.0), ss(23.0), false),
-            text("expire_date", sx(0.0), sy(498.0), LABEL_WIDTH, sy(28.0), ss(23.0), false),
+            text(
+                "lot",
+                sx(0.0),
+                sy(418.0),
+                LABEL_WIDTH,
+                sy(28.0),
+                ss(23.0),
+                false,
+            ),
+            text(
+                "prod_date",
+                sx(0.0),
+                sy(458.0),
+                LABEL_WIDTH,
+                sy(28.0),
+                ss(23.0),
+                false,
+            ),
+            text(
+                "expire_date",
+                sx(0.0),
+                sy(498.0),
+                LABEL_WIDTH,
+                sy(28.0),
+                ss(23.0),
+                false,
+            ),
         ],
     }
 }
@@ -275,7 +435,9 @@ fn migrate_page_if_needed(page: &mut PageLayout) {
         element.width = element.width.clamp(1.0, LABEL_WIDTH);
         element.height = element.height.clamp(1.0, LABEL_HEIGHT);
         element.x = element.x.clamp(0.0, (LABEL_WIDTH - element.width).max(0.0));
-        element.y = element.y.clamp(0.0, (LABEL_HEIGHT - element.height).max(0.0));
+        element.y = element
+            .y
+            .clamp(0.0, (LABEL_HEIGHT - element.height).max(0.0));
     }
 }
 

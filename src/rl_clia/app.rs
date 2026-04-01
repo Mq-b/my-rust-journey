@@ -10,9 +10,12 @@ use crate::layout::{
 };
 use chrono::{Duration, Local};
 use image::GrayImage;
+use rfd::FileDialog;
 use slint::{Model, ModelRc, SharedString, VecModel};
 use std::cell::RefCell;
+use std::path::Path;
 use std::rc::Rc;
+use zxingcpp::{BarcodeFormat, BarcodeReader};
 
 slint::include_modules!();
 
@@ -38,6 +41,17 @@ struct GeneratedPage {
     label: &'static str,
 }
 
+struct ParsedBarcodeData {
+    type_label: String,
+    fields: Vec<(String, String)>,
+}
+
+#[derive(Clone, Copy)]
+enum GenerateMode {
+    Preview,
+    PersistReagentIds,
+}
+
 enum LayoutUpdate {
     Move { dx: f32, dy: f32 },
 }
@@ -57,6 +71,7 @@ pub fn run() {
     }));
 
     window.set_preview_elements(preview_model.clone().into());
+    window.set_decode_fields(ModelRc::new(VecModel::from(Vec::<DecodeFieldData>::new())));
     window.set_label_width_px(LABEL_WIDTH_PX as i32);
     window.set_label_height_px(LABEL_HEIGHT_PX as i32);
     init_project_models(&window, &proj);
@@ -65,7 +80,7 @@ pub fn run() {
     bind_generate_preview_callback(&window, proj.clone(), state.clone());
     bind_export_png_callback(&window, proj.clone(), state.clone());
     bind_export_pdf_callback(&window, proj.clone(), state.clone());
-    bind_decrypt_callback(&window);
+    bind_decrypt_callbacks(&window);
     bind_layout_editor_callbacks(&window, proj.clone(), state.clone());
 
     refresh_editor_for_page(&window, &proj, &state, PageKind::Reagent);
@@ -80,11 +95,6 @@ fn compute_expire(date: &str, days: i64) -> String {
     chrono::NaiveDate::parse_from_str(date, "%Y-%m-%d")
         .map(|d| (d + Duration::days(days)).format("%Y-%m-%d").to_string())
         .unwrap_or_default()
-}
-
-fn generate_serials(count: usize) -> Vec<String> {
-    let d = Local::now().format("%Y%m%d").to_string();
-    (1..=count).map(|i| format!("{d}{:04}", i)).collect()
 }
 
 fn require_fields(fields: &[(&str, &str)]) -> Result<(), String> {
@@ -136,7 +146,7 @@ fn bind_generate_preview_callback(
         let page = PageKind::from_ui(&page.to_string());
         let generated = {
             let editor = state.borrow();
-            dispatch_generate(page, &window, &proj, &editor.layout)
+            dispatch_generate(page, &window, &proj, &editor.layout, GenerateMode::Preview)
         };
         match generated {
             Ok(result) => {
@@ -167,7 +177,13 @@ fn bind_export_png_callback(
         let page = PageKind::from_ui(&page.to_string());
         let generated = {
             let editor = state.borrow();
-            dispatch_generate(page, &window, &proj, &editor.layout)
+            dispatch_generate(
+                page,
+                &window,
+                &proj,
+                &editor.layout,
+                GenerateMode::PersistReagentIds,
+            )
         };
         match generated {
             Ok(result) => {
@@ -203,7 +219,13 @@ fn bind_export_pdf_callback(
         let page = PageKind::from_ui(&page.to_string());
         let generated = {
             let editor = state.borrow();
-            dispatch_generate(page, &window, &proj, &editor.layout)
+            dispatch_generate(
+                page,
+                &window,
+                &proj,
+                &editor.layout,
+                GenerateMode::PersistReagentIds,
+            )
         };
         match generated {
             Ok(result) => {
@@ -228,16 +250,277 @@ fn bind_export_pdf_callback(
     });
 }
 
-fn bind_decrypt_callback(window: &RLCLIAWindow) {
+fn bind_decrypt_callbacks(window: &RLCLIAWindow) {
     let weak = window.as_weak();
     window.on_decrypt_data(move || {
         let window = weak.unwrap();
         let input = window.get_decrypt_input().to_string();
-        match encryptor::decrypt(&input) {
-            Ok(plain) => window.set_decrypt_output(plain.into()),
-            Err(err) => window.set_decrypt_output(format!("错误: {err}").into()),
+        if let Err(err) = process_decrypt_input(&window, &input, "文本输入", false) {
+            window.set_decrypt_output(format!("错误: {err}").into());
+            window.set_decrypt_type("".into());
+            window.set_decrypt_source("".into());
+            window.set_decode_fields(ModelRc::new(VecModel::from(Vec::<DecodeFieldData>::new())));
+            window.set_status(format!("错误: {err}").into());
+            window.set_toast_msg("解密失败".into());
+            window.set_toast_visible(true);
         }
     });
+
+    let weak = window.as_weak();
+    window.on_pick_decrypt_image(move || {
+        let window = weak.unwrap();
+        if let Some(path) = FileDialog::new()
+            .set_title("选择包含 PDF417 的条码图片")
+            .add_filter(
+                "图片文件",
+                &["png", "jpg", "jpeg", "bmp", "tif", "tiff", "webp"],
+            )
+            .pick_file()
+        {
+            match decode_cipher_from_image(&path) {
+                Ok(cipher) => {
+                    if let Err(err) = process_decrypt_input(&window, &cipher, "图片扫描", true)
+                    {
+                        window.set_decrypt_output(format!("错误: {err}").into());
+                        window.set_decrypt_type("".into());
+                        window.set_decrypt_source("".into());
+                        window
+                            .set_decode_fields(ModelRc::new(VecModel::from(
+                                Vec::<DecodeFieldData>::new(),
+                            )));
+                        window.set_status(format!("错误: {err}").into());
+                        window.set_toast_msg("识别失败".into());
+                        window.set_toast_visible(true);
+                    } else {
+                        window.set_status(format!("已识别图片: {}", path.display()).into());
+                        window.set_toast_msg("图片识别成功".into());
+                        window.set_toast_visible(true);
+                    }
+                }
+                Err(err) => {
+                    window.set_decrypt_output(format!("错误: {err}").into());
+                    window.set_decrypt_type("".into());
+                    window.set_decrypt_source("".into());
+                    window.set_decode_fields(ModelRc::new(VecModel::from(
+                        Vec::<DecodeFieldData>::new(),
+                    )));
+                    window.set_status(format!("错误: {err}").into());
+                    window.set_toast_msg("识别失败".into());
+                    window.set_toast_visible(true);
+                }
+            }
+        }
+    });
+}
+
+fn process_decrypt_input(
+    window: &RLCLIAWindow,
+    cipher_input: &str,
+    source: &str,
+    update_input_box: bool,
+) -> Result<(), String> {
+    let cipher = cipher_input.trim();
+    if cipher.is_empty() {
+        return Err("请输入密文，或先选择图片".into());
+    }
+
+    let plain = match encryptor::decrypt(cipher) {
+        Ok(plain) => plain,
+        Err(err) => {
+            if looks_like_plain_payload(cipher) {
+                cipher.to_string()
+            } else {
+                return Err(err);
+            }
+        }
+    };
+
+    let parsed = parse_barcode_payload(&plain)?;
+    apply_parsed_barcode(window, source, cipher, &plain, &parsed, update_input_box);
+    Ok(())
+}
+
+fn decode_cipher_from_image(path: &Path) -> Result<String, String> {
+    let image = image::open(path).map_err(|e| format!("打开图片失败: {e}"))?;
+
+    let reader = BarcodeReader::new()
+        .formats(&[BarcodeFormat::PDF417])
+        .try_harder(true)
+        .try_rotate(true)
+        .try_invert(true)
+        .try_downscale(true);
+    let barcodes = reader
+        .from(&image)
+        .map_err(|e| format!("识别条码失败: {e}"))?;
+    if let Some(text) = first_valid_barcode_text(barcodes) {
+        return Ok(text);
+    }
+
+    // 兜底尝试：不限制码制，避免上传图像码制标记异常导致漏读。
+    let fallback_reader = BarcodeReader::new()
+        .try_harder(true)
+        .try_rotate(true)
+        .try_invert(true)
+        .try_downscale(true);
+    let fallback = fallback_reader
+        .from(&image)
+        .map_err(|e| format!("识别条码失败: {e}"))?;
+    first_valid_barcode_text(fallback).ok_or_else(|| "未在图片中识别到有效条码内容".to_string())
+}
+
+fn first_valid_barcode_text(barcodes: Vec<zxingcpp::Barcode>) -> Option<String> {
+    barcodes
+        .into_iter()
+        .map(|barcode| barcode.text())
+        .find(|text| !text.trim().is_empty())
+}
+
+fn apply_parsed_barcode(
+    window: &RLCLIAWindow,
+    source: &str,
+    cipher: &str,
+    plain: &str,
+    parsed: &ParsedBarcodeData,
+    update_input_box: bool,
+) {
+    if update_input_box {
+        window.set_decrypt_input(cipher.into());
+    }
+
+    window.set_decrypt_output(plain.into());
+    window.set_decrypt_source(source.into());
+    window.set_decrypt_type(parsed.type_label.clone().into());
+
+    let rows: Vec<DecodeFieldData> = parsed
+        .fields
+        .iter()
+        .map(|(key, value)| DecodeFieldData {
+            key: key.clone().into(),
+            value: value.clone().into(),
+        })
+        .collect();
+    window.set_decode_fields(ModelRc::new(VecModel::from(rows)));
+    window.set_status(format!("{}解析成功（{}）", parsed.type_label, source).into());
+    window.set_toast_msg("解密解析成功".into());
+    window.set_toast_visible(true);
+}
+
+fn looks_like_plain_payload(input: &str) -> bool {
+    let kind = input
+        .split(';')
+        .next()
+        .unwrap_or_default()
+        .trim()
+        .to_ascii_lowercase();
+    matches!(
+        kind.as_str(),
+        "reagent" | "calibration" | "consumable" | "qc"
+    )
+}
+
+fn parse_barcode_payload(payload: &str) -> Result<ParsedBarcodeData, String> {
+    let parts: Vec<&str> = payload.split(';').collect();
+    if parts.is_empty() || parts[0].trim().is_empty() {
+        return Err("明文内容为空或格式不正确".into());
+    }
+
+    let get = |index: usize| {
+        parts
+            .get(index)
+            .map(|value| value.trim().to_string())
+            .unwrap_or_default()
+    };
+
+    let kind = parts[0].trim().to_ascii_lowercase();
+    let parsed = match kind.as_str() {
+        "reagent" => {
+            let lot = get(3);
+            let reagent_id = get(9);
+            ParsedBarcodeData {
+                type_label: "试剂条码".into(),
+                fields: vec![
+                    ("项目名称".into(), restore_special_name(&get(1))),
+                    ("项目编号".into(), get(2)),
+                    ("试剂批号".into(), lot),
+                    ("试剂ID".into(), reagent_id),
+                    ("结果单位".into(), get(10)),
+                    ("测试/盒".into(), get(6)),
+                    ("开瓶天数".into(), get(7)),
+                    ("反应模式".into(), get(8)),
+                    ("生产日期".into(), get(4)),
+                    ("失效日期".into(), get(5)),
+                    ("曲线参数a".into(), get(11)),
+                    ("曲线参数b".into(), get(12)),
+                    ("曲线参数c".into(), get(13)),
+                    ("曲线参数d".into(), get(14)),
+                    ("范围下限".into(), get(15)),
+                    ("范围上限".into(), get(16)),
+                    ("限值下限".into(), get(17)),
+                    ("限值上限".into(), get(18)),
+                ],
+            }
+        }
+        "calibration" => ParsedBarcodeData {
+            type_label: "校准品条码".into(),
+            fields: vec![
+                ("项目名称".into(), restore_special_name(&get(1))),
+                ("项目编号".into(), get(2)),
+                ("校准批号".into(), get(3)),
+                ("生产日期".into(), get(4)),
+                ("失效日期".into(), get(5)),
+                ("反应模式".into(), get(6)),
+                ("C1 发光值".into(), get(7)),
+                ("C2 发光值".into(), get(8)),
+            ],
+        },
+        "consumable" => ParsedBarcodeData {
+            type_label: "耗材条码".into(),
+            fields: vec![
+                ("耗材名称".into(), restore_special_name(&get(1))),
+                ("耗材批号".into(), get(2)),
+                ("生产日期".into(), get(3)),
+                ("失效日期".into(), get(4)),
+                ("可用频次".into(), get(5)),
+                ("开瓶天数".into(), get(6)),
+            ],
+        },
+        "qc" => ParsedBarcodeData {
+            type_label: "质控品条码".into(),
+            fields: vec![
+                ("项目名称".into(), restore_special_name(&get(1))),
+                ("项目编号".into(), get(2)),
+                ("质控批号".into(), get(3)),
+                ("生产日期".into(), get(4)),
+                ("失效日期".into(), get(5)),
+                ("反应模式".into(), get(6)),
+                ("Q1".into(), get(7)),
+                ("SD1".into(), get(8)),
+                ("Q2".into(), get(9)),
+                ("SD2".into(), get(10)),
+            ],
+        },
+        _ => {
+            let mut fields = Vec::new();
+            for (index, value) in parts.iter().enumerate().skip(1) {
+                fields.push((format!("字段{index}"), value.trim().to_string()));
+            }
+            ParsedBarcodeData {
+                type_label: "未知类型条码".into(),
+                fields,
+            }
+        }
+    };
+
+    Ok(parsed)
+}
+
+fn restore_special_name(name: &str) -> String {
+    match name {
+        "S100B" => "S100β".into(),
+        "AB1-42" => "Aβ1-42".into(),
+        "B-HCG" => "β-HCG".into(),
+        _ => name.to_string(),
+    }
 }
 
 fn bind_layout_editor_callbacks(
@@ -332,9 +615,15 @@ fn refresh_editor_for_page(
     state: &Rc<RefCell<EditorState>>,
     page: PageKind,
 ) {
-    let preview = dispatch_generate(page, window, proj, &state.borrow().layout)
-        .map(|generated| (generated.content, Some(generated.preview_barcode)))
-        .unwrap_or_else(|_| (fallback_preview_content(page, window, proj), None));
+    let preview = dispatch_generate(
+        page,
+        window,
+        proj,
+        &state.borrow().layout,
+        GenerateMode::Preview,
+    )
+    .map(|generated| (generated.content, Some(generated.preview_barcode)))
+    .unwrap_or_else(|_| (fallback_preview_content(page, window, proj), None));
     apply_preview_data(window, state, page, &preview.0, preview.1.as_ref());
 }
 
@@ -633,7 +922,9 @@ fn normalize_element(element: &mut LayoutElement) {
         element.bold = false;
     }
     element.x = element.x.clamp(0.0, (LABEL_WIDTH - element.width).max(0.0));
-    element.y = element.y.clamp(0.0, (LABEL_HEIGHT - element.height).max(0.0));
+    element.y = element
+        .y
+        .clamp(0.0, (LABEL_HEIGHT - element.height).max(0.0));
 }
 
 fn format_number(value: f32) -> String {
@@ -645,7 +936,10 @@ fn format_number(value: f32) -> String {
 }
 
 fn project_name_at(proj: &config::ProjectConfig, index: usize) -> String {
-    proj.project_name_list.get(index).cloned().unwrap_or_default()
+    proj.project_name_list
+        .get(index)
+        .cloned()
+        .unwrap_or_default()
 }
 
 fn project_id_at(proj: &config::ProjectConfig, index: usize) -> String {
@@ -665,7 +959,11 @@ fn fallback_preview_content(
                 title: "试剂二维码信息".into(),
                 subtitle1: Some(format!(
                     "{} 测定试剂盒",
-                    if name.is_empty() { "项目名称" } else { &name }
+                    if name.is_empty() {
+                        "项目名称"
+                    } else {
+                        &name
+                    }
                 )),
                 subtitle2: Some(format!(
                     "(化学发光免疫分析法)  {} 测试/盒",
@@ -675,7 +973,11 @@ fn fallback_preview_content(
                 prod_date: window.get_reagent_prod_date().to_string(),
                 expire_date: compute_expire(
                     &window.get_reagent_prod_date().to_string(),
-                    window.get_reagent_valid_days().to_string().parse().unwrap_or(365),
+                    window
+                        .get_reagent_valid_days()
+                        .to_string()
+                        .parse()
+                        .unwrap_or(365),
                 ),
             }
         }
@@ -689,7 +991,11 @@ fn fallback_preview_content(
                 prod_date: window.get_calib_prod_date().to_string(),
                 expire_date: compute_expire(
                     &window.get_calib_prod_date().to_string(),
-                    window.get_calib_valid_days().to_string().parse().unwrap_or(365),
+                    window
+                        .get_calib_valid_days()
+                        .to_string()
+                        .parse()
+                        .unwrap_or(365),
                 ),
             }
         }
@@ -707,7 +1013,11 @@ fn fallback_preview_content(
                 prod_date: window.get_consumable_prod_date().to_string(),
                 expire_date: compute_expire(
                     &window.get_consumable_prod_date().to_string(),
-                    window.get_consumable_valid_days().to_string().parse().unwrap_or(365),
+                    window
+                        .get_consumable_valid_days()
+                        .to_string()
+                        .parse()
+                        .unwrap_or(365),
                 ),
             }
         }
@@ -721,7 +1031,11 @@ fn fallback_preview_content(
                 prod_date: window.get_quality_prod_date().to_string(),
                 expire_date: compute_expire(
                     &window.get_quality_prod_date().to_string(),
-                    window.get_quality_valid_days().to_string().parse().unwrap_or(365),
+                    window
+                        .get_quality_valid_days()
+                        .to_string()
+                        .parse()
+                        .unwrap_or(365),
                 ),
             }
         }
@@ -741,9 +1055,10 @@ fn dispatch_generate(
     window: &RLCLIAWindow,
     proj: &config::ProjectConfig,
     layout: &LayoutConfig,
+    mode: GenerateMode,
 ) -> Result<GeneratedPage, String> {
     match page {
-        PageKind::Reagent => gen_reagent(window, proj, layout),
+        PageKind::Reagent => gen_reagent(window, proj, layout, mode),
         PageKind::Calibration => gen_calibration(window, proj, layout),
         PageKind::Consumable => gen_consumable(window, layout),
         PageKind::Quality => gen_quality(window, proj, layout),
@@ -754,17 +1069,27 @@ fn gen_reagent(
     window: &RLCLIAWindow,
     proj: &config::ProjectConfig,
     layout: &LayoutConfig,
+    mode: GenerateMode,
 ) -> Result<GeneratedPage, String> {
     let idx = window.get_reagent_project_index() as usize;
     let name = project_name_at(proj, idx);
     let id = project_id_at(proj, idx);
     let lot = window.get_reagent_lot().to_string();
     let prod = window.get_reagent_prod_date().to_string();
-    let days: i64 = window.get_reagent_valid_days().to_string().parse().unwrap_or(365);
+    let days: i64 = window
+        .get_reagent_valid_days()
+        .to_string()
+        .parse()
+        .unwrap_or(365);
     let exp = compute_expire(&prod, days);
     let counts = window.get_reagent_test_counts().to_string();
     let open = window.get_reagent_open_days().to_string();
-    let n: usize = window.get_reagent_serial_count().to_string().parse().unwrap_or(1);
+    let n: usize = window
+        .get_reagent_serial_count()
+        .to_string()
+        .parse()
+        .unwrap_or(1)
+        .max(1);
     let units = ["pg/mL", "ng/mL", "mg/L", "ng/L", "IU/L"];
     let unit = units
         .get(window.get_reagent_unit_index() as usize)
@@ -807,16 +1132,25 @@ fn gen_reagent(
 
     let mut preview_barcode = None;
     let mut images = Vec::new();
-    for serial in generate_serials(n) {
+    let serials = match mode {
+        GenerateMode::Preview => config::preview_reagent_ids(&lot, n)?,
+        GenerateMode::PersistReagentIds => config::consume_reagent_ids(&lot, n)?,
+    };
+
+    for serial in serials {
         let enc = encryptor::compose_reagent(
-            &name, &id, &lot, &prod, &exp, &counts, &open, "direct", &serial, unit, &pa, &pb,
-            &pc, &pd, &rl, &ru, &ll, &lu,
+            &name, &id, &lot, &prod, &exp, &counts, &open, "direct", &serial, unit, &pa, &pb, &pc,
+            &pd, &rl, &ru, &ll, &lu,
         )?;
         let barcode = generate_barcode(&enc)?;
         if preview_barcode.is_none() {
             preview_barcode = Some(barcode.clone());
         }
-        images.push(render_label(&barcode, layout.page(PageKind::Reagent), &content));
+        images.push(render_label(
+            &barcode,
+            layout.page(PageKind::Reagent),
+            &content,
+        ));
     }
 
     Ok(GeneratedPage {
@@ -837,9 +1171,18 @@ fn gen_calibration(
     let id = project_id_at(proj, idx);
     let lot = window.get_calib_lot().to_string();
     let prod = window.get_calib_prod_date().to_string();
-    let days: i64 = window.get_calib_valid_days().to_string().parse().unwrap_or(365);
+    let days: i64 = window
+        .get_calib_valid_days()
+        .to_string()
+        .parse()
+        .unwrap_or(365);
     let exp = compute_expire(&prod, days);
-    let n: usize = window.get_calib_quantity().to_string().parse().unwrap_or(1);
+    let n: usize = window
+        .get_calib_quantity()
+        .to_string()
+        .parse()
+        .unwrap_or(1)
+        .max(1);
     let c1 = window.get_calib_c1().to_string();
     let c2 = window.get_calib_c2().to_string();
 
@@ -886,10 +1229,7 @@ fn gen_calibration(
     })
 }
 
-fn gen_consumable(
-    window: &RLCLIAWindow,
-    layout: &LayoutConfig,
-) -> Result<GeneratedPage, String> {
+fn gen_consumable(window: &RLCLIAWindow, layout: &LayoutConfig) -> Result<GeneratedPage, String> {
     let types = ["激发液A", "激发液B"];
     let type_index = window.get_consumable_type_index() as usize;
     let type_name = types.get(type_index).unwrap_or(&"激发液A");
@@ -903,7 +1243,12 @@ fn gen_consumable(
     let exp = compute_expire(&prod, days);
     let freq = window.get_consumable_freq().to_string();
     let open = window.get_consumable_open_days().to_string();
-    let n: usize = window.get_consumable_quantity().to_string().parse().unwrap_or(1);
+    let n: usize = window
+        .get_consumable_quantity()
+        .to_string()
+        .parse()
+        .unwrap_or(1)
+        .max(1);
 
     require_fields(&[
         ("耗材批号", &lot),
@@ -956,9 +1301,18 @@ fn gen_quality(
     let id = project_id_at(proj, idx);
     let lot = window.get_quality_lot().to_string();
     let prod = window.get_quality_prod_date().to_string();
-    let days: i64 = window.get_quality_valid_days().to_string().parse().unwrap_or(365);
+    let days: i64 = window
+        .get_quality_valid_days()
+        .to_string()
+        .parse()
+        .unwrap_or(365);
     let exp = compute_expire(&prod, days);
-    let n: usize = window.get_quality_quantity().to_string().parse().unwrap_or(1);
+    let n: usize = window
+        .get_quality_quantity()
+        .to_string()
+        .parse()
+        .unwrap_or(1)
+        .max(1);
     let q1 = window.get_quality_q1().to_string();
     let sd1 = window.get_quality_sd1().to_string();
     let q2 = window.get_quality_q2().to_string();
@@ -995,7 +1349,11 @@ fn gen_quality(
         if preview_barcode.is_none() {
             preview_barcode = Some(barcode.clone());
         }
-        images.push(render_label(&barcode, layout.page(PageKind::Quality), &content));
+        images.push(render_label(
+            &barcode,
+            layout.page(PageKind::Quality),
+            &content,
+        ));
     }
 
     Ok(GeneratedPage {

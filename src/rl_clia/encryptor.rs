@@ -1,4 +1,4 @@
-use aes::cipher::{block_padding::Pkcs7, BlockDecryptMut, BlockEncryptMut, KeyIvInit};
+use aes::cipher::{BlockDecryptMut, BlockEncryptMut, KeyIvInit, block_padding::Pkcs7};
 
 /// CBC 模式下的 AES-256 加密器。
 type Aes256CbcEnc = cbc::Encryptor<aes::Aes256>;
