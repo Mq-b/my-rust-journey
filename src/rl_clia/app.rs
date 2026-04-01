@@ -1,9 +1,12 @@
-use crate::barcode::{LabelContent, generate_barcode, generate_pdf, gray_to_slint_image, render_label};
+use crate::barcode::{
+    LabelContent, generate_barcode, generate_pdf, gray_to_slint_image, render_label,
+    save_png_with_dpi,
+};
 use crate::config;
 use crate::encryptor;
 use crate::layout::{
-    LABEL_HEIGHT, LABEL_WIDTH, LayoutConfig, LayoutElement, LayoutElementKind, PageKind,
-    load_layout_config, save_layout_config,
+    LABEL_HEIGHT, LABEL_HEIGHT_PX, LABEL_WIDTH, LABEL_WIDTH_PX, LayoutConfig, LayoutElement,
+    LayoutElementKind, PageKind, load_layout_config, save_layout_config,
 };
 use chrono::{Duration, Local};
 use image::GrayImage;
@@ -54,6 +57,8 @@ pub fn run() {
     }));
 
     window.set_preview_elements(preview_model.clone().into());
+    window.set_label_width_px(LABEL_WIDTH_PX as i32);
+    window.set_label_height_px(LABEL_HEIGHT_PX as i32);
     init_project_models(&window, &proj);
     init_default_dates(&window);
     bind_compute_expiry_callback(&window);
@@ -172,7 +177,7 @@ fn bind_export_png_callback(
                     .add_filter("PNG图片", &["png"])
                     .save_file()
                 {
-                    match result.images[0].save(&path) {
+                    match save_png_with_dpi(&result.images[0], &path) {
                         Ok(_) => {
                             window.set_status(format!("已保存: {}", path.display()).into());
                             window.set_toast_msg("导出成功".into());

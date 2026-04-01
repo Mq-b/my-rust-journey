@@ -1,6 +1,8 @@
-use crate::layout::{LABEL_HEIGHT, LABEL_WIDTH, LayoutElementKind, PageLayout};
+use crate::layout::{LABEL_HEIGHT, LABEL_WIDTH, LayoutElementKind, OUTPUT_DPM, PageLayout};
 use ab_glyph::{Font, ScaleFont};
 use image::GrayImage;
+use std::fs::File;
+use std::io::BufWriter;
 use zxingcpp::*;
 
 /// 标签中 PDF417 条码区域的默认宽度，单位为像素。
@@ -35,6 +37,26 @@ pub fn gray_to_slint_image(gray: &GrayImage) -> slint::Image {
         .collect();
     let buffer = slint::SharedPixelBuffer::<slint::Rgba8Pixel>::clone_from_slice(&pixels, w, h);
     slint::Image::from_rgba8(buffer)
+}
+
+/// 保存 PNG，并写入 300 DPI 的物理尺寸元数据。
+pub fn save_png_with_dpi(image: &GrayImage, output_path: &std::path::Path) -> Result<(), String> {
+    let file = File::create(output_path).map_err(|e| format!("创建PNG失败: {e}"))?;
+    let writer = BufWriter::new(file);
+    let mut encoder = png::Encoder::new(writer, image.width(), image.height());
+    encoder.set_color(png::ColorType::Grayscale);
+    encoder.set_depth(png::BitDepth::Eight);
+    encoder.set_pixel_dims(Some(png::PixelDimensions {
+        xppu: OUTPUT_DPM,
+        yppu: OUTPUT_DPM,
+        unit: png::Unit::Meter,
+    }));
+    let mut png_writer = encoder
+        .write_header()
+        .map_err(|e| format!("写入PNG头失败: {e}"))?;
+    png_writer
+        .write_image_data(image.as_raw())
+        .map_err(|e| format!("写入PNG数据失败: {e}"))
 }
 
 /// 生成 PDF417 条码灰度图。

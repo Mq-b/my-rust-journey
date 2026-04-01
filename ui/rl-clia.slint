@@ -131,6 +131,8 @@ export component RLCLIAWindow inherits Window {
     in-out property <string> enc-page: "reagent";
     in-out property <[string]> project-names: [];
     in-out property <[string]> project-ids: [];
+    in-out property <int> label-width-px: 1;
+    in-out property <int> label-height-px: 1;
 
     in-out property <int> reagent-project-index: 0;
     in-out property <string> reagent-lot;
@@ -970,11 +972,11 @@ export component RLCLIAWindow inherits Window {
                     if layout-editor-ready: editor-area := Rectangle {
                         property <length> avail-width: self.width - 24px;
                         property <length> avail-height: self.height - 24px;
-                        property <float> width-scale: self.avail-width / 660px;
-                        property <float> height-scale: self.avail-height / 580px;
+                        property <float> width-scale: self.avail-width / (root.label-width-px * 1px);
+                        property <float> height-scale: self.avail-height / (root.label-height-px * 1px);
                         property <float> canvas-scale: self.width-scale < self.height-scale ? self.width-scale : self.height-scale;
-                        property <length> canvas-width: 660px * self.canvas-scale;
-                        property <length> canvas-height: 580px * self.canvas-scale;
+                        property <length> canvas-width: root.label-width-px * 1px * self.canvas-scale;
+                        property <length> canvas-height: root.label-height-px * 1px * self.canvas-scale;
                         x: 12px;
                         y: 12px;
                         width: parent.width - 24px;

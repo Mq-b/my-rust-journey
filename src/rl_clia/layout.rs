@@ -2,8 +2,16 @@ use serde::{Deserialize, Serialize};
 use std::path::Path;
 
 pub const LAYOUT_CONFIG_PATH: &str = "Setting/rl-clia-layout.json";
-pub const LABEL_WIDTH: f32 = 660.0;
-pub const LABEL_HEIGHT: f32 = 580.0;
+pub const LABEL_WIDTH_MM: u32 = 55;
+pub const LABEL_HEIGHT_MM: u32 = 45;
+pub const OUTPUT_DPI: u32 = 300;
+pub const OUTPUT_DPM: u32 = div_round(OUTPUT_DPI * 10_000, 254);
+pub const LABEL_WIDTH_PX: u32 = div_round(LABEL_WIDTH_MM * OUTPUT_DPI * 10, 254);
+pub const LABEL_HEIGHT_PX: u32 = div_round(LABEL_HEIGHT_MM * OUTPUT_DPI * 10, 254);
+pub const LABEL_WIDTH: f32 = LABEL_WIDTH_PX as f32;
+pub const LABEL_HEIGHT: f32 = LABEL_HEIGHT_PX as f32;
+const LEGACY_LABEL_WIDTH: f32 = 660.0;
+const LEGACY_LABEL_HEIGHT: f32 = 580.0;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PageKind {
@@ -118,7 +126,8 @@ pub struct LayoutElement {
 pub fn load_layout_config() -> LayoutConfig {
     let path = Path::new(LAYOUT_CONFIG_PATH);
     if let Ok(data) = std::fs::read_to_string(path) {
-        if let Ok(cfg) = serde_json::from_str::<LayoutConfig>(&data) {
+        if let Ok(mut cfg) = serde_json::from_str::<LayoutConfig>(&data) {
+            migrate_config_if_needed(&mut cfg);
             return cfg;
         }
     }
@@ -137,13 +146,13 @@ pub fn save_layout_config(config: &LayoutConfig) -> Result<(), String> {
 fn reagent_layout() -> PageLayout {
     PageLayout {
         elements: vec![
-            text("title", 0.0, 18.0, LABEL_WIDTH, 44.0, 32.0, true),
-            text("subtitle1", 0.0, 60.0, LABEL_WIDTH, 30.0, 22.0, false),
-            text("subtitle2", 0.0, 88.0, LABEL_WIDTH, 24.0, 18.0, false),
-            barcode("barcode", 30.0, 130.0, 600.0, 300.0),
-            text("lot", 0.0, 450.0, LABEL_WIDTH, 28.0, 23.0, false),
-            text("prod_date", 0.0, 490.0, LABEL_WIDTH, 28.0, 23.0, false),
-            text("expire_date", 0.0, 530.0, LABEL_WIDTH, 28.0, 23.0, false),
+            text("title", sx(0.0), sy(18.0), LABEL_WIDTH, sy(44.0), ss(32.0), true),
+            text("subtitle1", sx(0.0), sy(60.0), LABEL_WIDTH, sy(30.0), ss(22.0), false),
+            text("subtitle2", sx(0.0), sy(88.0), LABEL_WIDTH, sy(24.0), ss(18.0), false),
+            barcode("barcode", sx(30.0), sy(130.0), sx(600.0), sy(300.0)),
+            text("lot", sx(0.0), sy(450.0), LABEL_WIDTH, sy(28.0), ss(23.0), false),
+            text("prod_date", sx(0.0), sy(490.0), LABEL_WIDTH, sy(28.0), ss(23.0), false),
+            text("expire_date", sx(0.0), sy(530.0), LABEL_WIDTH, sy(28.0), ss(23.0), false),
         ],
     }
 }
@@ -151,12 +160,12 @@ fn reagent_layout() -> PageLayout {
 fn calibration_layout() -> PageLayout {
     PageLayout {
         elements: vec![
-            text("title", 0.0, 18.0, LABEL_WIDTH, 44.0, 32.0, true),
-            text("subtitle1", 0.0, 60.0, LABEL_WIDTH, 30.0, 24.0, false),
-            barcode("barcode", 30.0, 98.0, 600.0, 300.0),
-            text("lot", 0.0, 418.0, LABEL_WIDTH, 28.0, 23.0, false),
-            text("prod_date", 0.0, 458.0, LABEL_WIDTH, 28.0, 23.0, false),
-            text("expire_date", 0.0, 498.0, LABEL_WIDTH, 28.0, 23.0, false),
+            text("title", sx(0.0), sy(18.0), LABEL_WIDTH, sy(44.0), ss(32.0), true),
+            text("subtitle1", sx(0.0), sy(60.0), LABEL_WIDTH, sy(30.0), ss(24.0), false),
+            barcode("barcode", sx(30.0), sy(98.0), sx(600.0), sy(300.0)),
+            text("lot", sx(0.0), sy(418.0), LABEL_WIDTH, sy(28.0), ss(23.0), false),
+            text("prod_date", sx(0.0), sy(458.0), LABEL_WIDTH, sy(28.0), ss(23.0), false),
+            text("expire_date", sx(0.0), sy(498.0), LABEL_WIDTH, sy(28.0), ss(23.0), false),
         ],
     }
 }
@@ -164,11 +173,11 @@ fn calibration_layout() -> PageLayout {
 fn consumable_layout() -> PageLayout {
     PageLayout {
         elements: vec![
-            text("title", 0.0, 18.0, LABEL_WIDTH, 44.0, 32.0, true),
-            barcode("barcode", 30.0, 82.0, 600.0, 300.0),
-            text("lot", 0.0, 402.0, LABEL_WIDTH, 28.0, 23.0, false),
-            text("prod_date", 0.0, 442.0, LABEL_WIDTH, 28.0, 23.0, false),
-            text("expire_date", 0.0, 482.0, LABEL_WIDTH, 28.0, 23.0, false),
+            text("title", sx(0.0), sy(18.0), LABEL_WIDTH, sy(44.0), ss(32.0), true),
+            barcode("barcode", sx(30.0), sy(82.0), sx(600.0), sy(300.0)),
+            text("lot", sx(0.0), sy(402.0), LABEL_WIDTH, sy(28.0), ss(23.0), false),
+            text("prod_date", sx(0.0), sy(442.0), LABEL_WIDTH, sy(28.0), ss(23.0), false),
+            text("expire_date", sx(0.0), sy(482.0), LABEL_WIDTH, sy(28.0), ss(23.0), false),
         ],
     }
 }
@@ -176,12 +185,12 @@ fn consumable_layout() -> PageLayout {
 fn quality_layout() -> PageLayout {
     PageLayout {
         elements: vec![
-            text("title", 0.0, 18.0, LABEL_WIDTH, 44.0, 32.0, true),
-            text("subtitle1", 0.0, 60.0, LABEL_WIDTH, 30.0, 24.0, false),
-            barcode("barcode", 30.0, 98.0, 600.0, 300.0),
-            text("lot", 0.0, 418.0, LABEL_WIDTH, 28.0, 23.0, false),
-            text("prod_date", 0.0, 458.0, LABEL_WIDTH, 28.0, 23.0, false),
-            text("expire_date", 0.0, 498.0, LABEL_WIDTH, 28.0, 23.0, false),
+            text("title", sx(0.0), sy(18.0), LABEL_WIDTH, sy(44.0), ss(32.0), true),
+            text("subtitle1", sx(0.0), sy(60.0), LABEL_WIDTH, sy(30.0), ss(24.0), false),
+            barcode("barcode", sx(30.0), sy(98.0), sx(600.0), sy(300.0)),
+            text("lot", sx(0.0), sy(418.0), LABEL_WIDTH, sy(28.0), ss(23.0), false),
+            text("prod_date", sx(0.0), sy(458.0), LABEL_WIDTH, sy(28.0), ss(23.0), false),
+            text("expire_date", sx(0.0), sy(498.0), LABEL_WIDTH, sy(28.0), ss(23.0), false),
         ],
     }
 }
@@ -218,4 +227,58 @@ fn barcode(id: &str, x: f32, y: f32, width: f32, height: f32) -> LayoutElement {
         font_size: 0.0,
         bold: false,
     }
+}
+
+fn sx(value: f32) -> f32 {
+    value * LABEL_WIDTH / LEGACY_LABEL_WIDTH
+}
+
+fn sy(value: f32) -> f32 {
+    value * LABEL_HEIGHT / LEGACY_LABEL_HEIGHT
+}
+
+fn ss(value: f32) -> f32 {
+    value * LABEL_HEIGHT / LEGACY_LABEL_HEIGHT
+}
+
+fn migrate_config_if_needed(config: &mut LayoutConfig) {
+    migrate_page_if_needed(&mut config.reagent);
+    migrate_page_if_needed(&mut config.calibration);
+    migrate_page_if_needed(&mut config.consumable);
+    migrate_page_if_needed(&mut config.quality);
+}
+
+fn migrate_page_if_needed(page: &mut PageLayout) {
+    let needs_legacy_migration = page.elements.iter().any(|element| {
+        element.width > LABEL_WIDTH + 0.5
+            || element.height > LABEL_HEIGHT + 0.5
+            || element.x + element.width > LABEL_WIDTH + 0.5
+            || element.y + element.height > LABEL_HEIGHT + 0.5
+    });
+
+    if needs_legacy_migration {
+        for element in &mut page.elements {
+            element.x = sx(element.x);
+            element.width = sx(element.width);
+            element.y = sy(element.y);
+            element.height = sy(element.height);
+            if element.kind == LayoutElementKind::Text {
+                element.font_size = ss(element.font_size);
+            } else {
+                element.font_size = 0.0;
+                element.bold = false;
+            }
+        }
+    }
+
+    for element in &mut page.elements {
+        element.width = element.width.clamp(1.0, LABEL_WIDTH);
+        element.height = element.height.clamp(1.0, LABEL_HEIGHT);
+        element.x = element.x.clamp(0.0, (LABEL_WIDTH - element.width).max(0.0));
+        element.y = element.y.clamp(0.0, (LABEL_HEIGHT - element.height).max(0.0));
+    }
+}
+
+const fn div_round(numerator: u32, denominator: u32) -> u32 {
+    (numerator + denominator / 2) / denominator
 }
