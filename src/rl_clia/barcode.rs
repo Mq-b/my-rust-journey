@@ -1,4 +1,4 @@
-use crate::layout::{LABEL_HEIGHT, LABEL_WIDTH, LayoutElementKind, OUTPUT_DPM, PageLayout};
+use crate::layout::{LayoutElementKind, PageLayout, LABEL_HEIGHT, LABEL_WIDTH, OUTPUT_DPM};
 use ab_glyph::{Font, ScaleFont};
 use image::GrayImage;
 use std::fs::File;
@@ -137,11 +137,16 @@ pub fn generate_pdf(images: &[GrayImage], output_path: &str) -> Result<(), Strin
     let pages_id = Ref::new(2);
     pdf.catalog(catalog_id).pages(pages_id);
 
-    let per_page = 12usize;
+    let per_page = 15usize;
     let cols = 3usize;
-    let margin = 28.35f32;
-    let cell_w = 155.91f32;
-    let cell_h = 127.56f32;
+    let rows = 5usize;
+    let label_w = 155.91f32;
+    let label_h = 127.56f32;
+    let gap = 5.0f32;
+    let margin_x = (595.28 - cols as f32 * label_w - (cols - 1) as f32 * gap) / 2.0;
+    let margin_y = (841.89 - rows as f32 * label_h - (rows - 1) as f32 * gap) / 2.0;
+    let cell_w = label_w + gap;
+    let cell_h = label_h + gap;
     let page_w = 595.28f32;
     let page_h = 841.89f32;
 
@@ -195,11 +200,17 @@ pub fn generate_pdf(images: &[GrayImage], output_path: &str) -> Result<(), Strin
             let pos = i % per_page;
             let row = pos / cols;
             let col = pos % cols;
-            let x = margin + col as f32 * cell_w;
-            let y = page_h - margin - (row as f32 + 1.0) * cell_h;
+            let x = margin_x + col as f32 * cell_w;
+            let y = page_h - margin_y - (row as f32 + 1.0) * cell_h;
             content.save_state();
-            content.transform([cell_w, 0.0, 0.0, cell_h, x, y]);
+            content.transform([label_w, 0.0, 0.0, label_h, x, y]);
             content.x_object(Name(format!("Im{}", start + i).as_bytes()));
+            content.restore_state();
+            content.save_state();
+            content.set_stroke_color([0.6f32, 0.6, 0.6]);
+            content.set_line_width(0.75);
+            content.rect(x, y, label_w, label_h);
+            content.stroke();
             content.restore_state();
         }
         pdf.stream(cont_ids[pi], &content.finish());

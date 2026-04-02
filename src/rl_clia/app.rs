@@ -1,12 +1,12 @@
 use crate::barcode::{
-    LabelContent, generate_barcode, generate_pdf, gray_to_slint_image, render_label,
-    save_png_with_dpi,
+    generate_barcode, generate_pdf, gray_to_slint_image, render_label, save_png_with_dpi,
+    LabelContent,
 };
 use crate::config;
 use crate::encryptor;
 use crate::layout::{
-    LABEL_HEIGHT, LABEL_HEIGHT_PX, LABEL_WIDTH, LABEL_WIDTH_PX, LayoutConfig, LayoutElement,
-    LayoutElementKind, PageKind, load_layout_config, save_layout_config,
+    load_layout_config, save_layout_config, LayoutConfig, LayoutElement, LayoutElementKind,
+    PageKind, LABEL_HEIGHT, LABEL_HEIGHT_PX, LABEL_WIDTH, LABEL_WIDTH_PX,
 };
 use chrono::{Duration, Local};
 use image::GrayImage;
@@ -50,6 +50,7 @@ struct ParsedBarcodeData {
 enum GenerateMode {
     Preview,
     PersistReagentIds,
+    ExportSingle,
 }
 
 enum LayoutUpdate {
@@ -182,7 +183,7 @@ fn bind_export_png_callback(
                 &window,
                 &proj,
                 &editor.layout,
-                GenerateMode::PersistReagentIds,
+                GenerateMode::ExportSingle,
             )
         };
         match generated {
@@ -1135,6 +1136,7 @@ fn gen_reagent(
     let serials = match mode {
         GenerateMode::Preview => config::preview_reagent_ids(&lot, n)?,
         GenerateMode::PersistReagentIds => config::consume_reagent_ids(&lot, n)?,
+        GenerateMode::ExportSingle => config::consume_reagent_ids(&lot, 1)?,
     };
 
     for serial in serials {
