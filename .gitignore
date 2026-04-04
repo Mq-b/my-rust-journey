@@ -2,5 +2,6 @@
 /build
 /.vscode
 /.claude
+/.rustup-home
 out.png
 barcode_config.json
