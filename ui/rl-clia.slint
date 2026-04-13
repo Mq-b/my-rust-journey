@@ -138,6 +138,8 @@ export component RLCLIAWindow inherits Window {
     in-out property <[string]> project-ids: [];
     in-out property <int> label-width-px: 1;
     in-out property <int> label-height-px: 1;
+    in-out property <string> label-width-mm: "55";
+    in-out property <string> label-height-mm: "45";
 
     in-out property <int> reagent-project-index: 0;
     in-out property <string> reagent-lot;
@@ -221,6 +223,7 @@ export component RLCLIAWindow inherits Window {
     callback drag-layout-element(string, string, float, float);
     callback update-selected-layout(string, string, string);
     callback toggle-selected-bold(string, bool);
+    callback update-label-size(string, string);
     callback reset-layout-page(string);
     pure callback compute-expiry(string, string) -> string;
 
@@ -876,6 +879,31 @@ export component RLCLIAWindow inherits Window {
                         Text {
                             text: "配置文件: Setting/rl-clia-layout.json";
                             color: #7B8794;
+                            font-size: 12px;
+                        }
+
+                        HorizontalLayout {
+                            spacing: 8px;
+                            SettingField {
+                                label: "宽(mm)";
+                                value <=> label-width-mm;
+                                edited(v) => {
+                                    root.update-label-size(v, label-height-mm);
+                                }
+                            }
+
+                            SettingField {
+                                label: "高(mm)";
+                                value <=> label-height-mm;
+                                edited(v) => {
+                                    root.update-label-size(label-width-mm, v);
+                                }
+                            }
+                        }
+
+                        Text {
+                            text: "标签尺寸修改后会立即应用到预览、PNG 与 PDF，并写入配置文件。";
+                            color: #5C6B79;
                             font-size: 12px;
                         }
 

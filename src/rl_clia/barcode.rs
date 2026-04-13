@@ -1,4 +1,4 @@
-use crate::layout::{LayoutElementKind, PageLayout, LABEL_HEIGHT, LABEL_WIDTH, OUTPUT_DPM};
+use crate::layout::{LayoutElementKind, PageLayout, OUTPUT_DPI, OUTPUT_DPM};
 use ab_glyph::{Font, ScaleFont};
 use image::GrayImage;
 use std::fs::File;
@@ -10,12 +10,6 @@ const DEFAULT_BARCODE_W: u32 = 600;
 
 /// 标签中 PDF417 条码区域的默认高度，单位为像素。
 const DEFAULT_BARCODE_H: u32 = 300;
-
-/// 单张标签导出图的总宽度，单位为像素。
-pub const LABEL_W: u32 = LABEL_WIDTH as u32;
-
-/// 单张标签导出图的总高度，单位为像素。
-pub const LABEL_H: u32 = LABEL_HEIGHT as u32;
 
 #[derive(Debug, Clone)]
 pub struct LabelContent {
@@ -91,12 +85,16 @@ pub fn render_label(
     barcode: &GrayImage,
     layout: &PageLayout,
     content: &LabelContent,
+    label_width_px: u32,
+    label_height_px: u32,
 ) -> image::GrayImage {
-    let mut canvas = GrayImage::from_pixel(LABEL_W, LABEL_H, image::Luma([255]));
+    let mut canvas = GrayImage::from_pixel(label_width_px, label_height_px, image::Luma([255]));
     let font = load_font();
     for element in &layout.elements {
         match element.kind {
-            LayoutElementKind::Barcode => draw_barcode_element(&mut canvas, barcode, element),
+            LayoutElementKind::Barcode => {
+                draw_barcode_element(&mut canvas, barcode, element, label_width_px, label_height_px)
+            }
             LayoutElementKind::Text => {
                 let Some(font) = font.as_ref() else {
                     continue;
@@ -114,6 +112,8 @@ pub fn render_label(
                     element.y,
                     element.width,
                     element.bold,
+                    label_width_px,
+                    label_height_px,
                 );
             }
         }
@@ -130,6 +130,18 @@ pub fn generate_pdf(images: &[GrayImage], output_path: &str) -> Result<(), Strin
         return Err("没有可生成的图像".into());
     }
 
+    let image_w = images[0].width();
+    let image_h = images[0].height();
+    if image_w == 0 || image_h == 0 {
+        return Err("图像尺寸无效".into());
+    }
+    if images
+        .iter()
+        .any(|img| img.width() != image_w || img.height() != image_h)
+    {
+        return Err("PDF导出失败: 图像尺寸不一致".into());
+    }
+
     let mut pdf = Pdf::new();
     pdf.set_version(1, 7);
 
@@ -140,15 +152,19 @@ pub fn generate_pdf(images: &[GrayImage], output_path: &str) -> Result<(), Strin
     let per_page = 15usize;
     let cols = 3usize;
     let rows = 5usize;
-    let label_w = 155.91f32;
-    let label_h = 127.56f32;
-    let gap = 5.0f32;
-    let margin_x = (595.28 - cols as f32 * label_w - (cols - 1) as f32 * gap) / 2.0;
-    let margin_y = (841.89 - rows as f32 * label_h - (rows - 1) as f32 * gap) / 2.0;
-    let cell_w = label_w + gap;
-    let cell_h = label_h + gap;
     let page_w = 595.28f32;
     let page_h = 841.89f32;
+    let px_to_pt = 72.0f32 / OUTPUT_DPI as f32;
+    let label_w = image_w as f32 * px_to_pt;
+    let label_h = image_h as f32 * px_to_pt;
+    let separator_pt = 1.5f32 * px_to_pt;
+
+    if cols as f32 * label_w > page_w || rows as f32 * label_h > page_h {
+        return Err("标签尺寸过大，无法保持每页 3x5 布局，请减小标签宽高".into());
+    }
+
+    let margin_x = (page_w - cols as f32 * label_w) / 2.0;
+    let margin_y = (page_h - rows as f32 * label_h) / 2.0;
 
     let page_count = images.len().div_ceil(per_page);
     let mut next_id: i32 = 3;
@@ -200,19 +216,35 @@ pub fn generate_pdf(images: &[GrayImage], output_path: &str) -> Result<(), Strin
             let pos = i % per_page;
             let row = pos / cols;
             let col = pos % cols;
-            let x = margin_x + col as f32 * cell_w;
-            let y = page_h - margin_y - (row as f32 + 1.0) * cell_h;
+            let x = margin_x + col as f32 * label_w;
+            let y = page_h - margin_y - (row as f32 + 1.0) * label_h;
             content.save_state();
             content.transform([label_w, 0.0, 0.0, label_h, x, y]);
             content.x_object(Name(format!("Im{}", start + i).as_bytes()));
             content.restore_state();
-            content.save_state();
-            content.set_stroke_color([0.6f32, 0.6, 0.6]);
-            content.set_line_width(0.75);
-            content.rect(x, y, label_w, label_h);
-            content.stroke();
-            content.restore_state();
         }
+
+        let grid_left = margin_x;
+        let grid_right = margin_x + cols as f32 * label_w;
+        let grid_top = page_h - margin_y;
+        let grid_bottom = page_h - margin_y - rows as f32 * label_h;
+
+        content.save_state();
+        content.set_stroke_color([0.62f32, 0.62, 0.62]);
+        content.set_line_width(separator_pt);
+        for col in 1..cols {
+            let x = margin_x + col as f32 * label_w;
+            content.move_to(x, grid_bottom);
+            content.line_to(x, grid_top);
+        }
+        for row in 1..rows {
+            let y = page_h - margin_y - row as f32 * label_h;
+            content.move_to(grid_left, y);
+            content.line_to(grid_right, y);
+        }
+        content.stroke();
+        content.restore_state();
+
         pdf.stream(cont_ids[pi], &content.finish());
 
         {
@@ -239,6 +271,8 @@ fn draw_barcode_element(
     canvas: &mut GrayImage,
     barcode: &GrayImage,
     element: &crate::layout::LayoutElement,
+    label_width_px: u32,
+    label_height_px: u32,
 ) {
     let target_w = element.width.max(1.0).round() as u32;
     let target_h = element.height.max(1.0).round() as u32;
@@ -259,7 +293,7 @@ fn draw_barcode_element(
         for x in 0..resized.width() {
             let px = start_x + x as i32;
             let py = start_y + y as i32;
-            if px >= 0 && py >= 0 && (px as u32) < LABEL_W && (py as u32) < LABEL_H {
+            if px >= 0 && py >= 0 && (px as u32) < label_width_px && (py as u32) < label_height_px {
                 canvas.put_pixel(px as u32, py as u32, *resized.get_pixel(x, y));
             }
         }
@@ -313,15 +347,44 @@ fn draw_text_in_box(
     y: f32,
     width: f32,
     bold: bool,
+    label_width_px: u32,
+    label_height_px: u32,
 ) {
     let scaled = font.as_scaled(px);
     let total_w = text_width(font, &scaled, text);
     let left = x + ((width - total_w).max(0.0) / 2.0);
     let baseline = y + scaled.ascent();
-    draw_text_once(img, font, &scaled, text, left, baseline);
+    draw_text_once(
+        img,
+        font,
+        &scaled,
+        text,
+        left,
+        baseline,
+        label_width_px,
+        label_height_px,
+    );
     if bold {
-        draw_text_once(img, font, &scaled, text, left + 0.8, baseline);
-        draw_text_once(img, font, &scaled, text, left, baseline + 0.8);
+        draw_text_once(
+            img,
+            font,
+            &scaled,
+            text,
+            left + 0.8,
+            baseline,
+            label_width_px,
+            label_height_px,
+        );
+        draw_text_once(
+            img,
+            font,
+            &scaled,
+            text,
+            left,
+            baseline + 0.8,
+            label_width_px,
+            label_height_px,
+        );
     }
 }
 
@@ -350,6 +413,8 @@ fn draw_text_once(
     text: &str,
     start_x: f32,
     baseline_y: f32,
+    label_width_px: u32,
+    label_height_px: u32,
 ) {
     let mut cursor = start_x;
     let mut last_id = None;
@@ -368,7 +433,11 @@ fn draw_text_once(
             outlined.draw(|gx, gy, alpha: f32| {
                 let px = gx as i32 + bounds.min.x as i32;
                 let py = gy as i32 + bounds.min.y as i32;
-                if px >= 0 && (px as u32) < LABEL_W && py >= 0 && (py as u32) < LABEL_H {
+                if px >= 0
+                    && (px as u32) < label_width_px
+                    && py >= 0
+                    && (py as u32) < label_height_px
+                {
                     let old = img.get_pixel(px as u32, py as u32)[0] as f32;
                     img.put_pixel(
                         px as u32,

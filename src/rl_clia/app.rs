@@ -1,7 +1,5 @@
 use crate::config;
-use crate::layout::{
-    load_layout_config, save_layout_config, PageKind, LABEL_HEIGHT_PX, LABEL_WIDTH_PX,
-};
+use crate::layout::{load_layout_config, save_layout_config, PageKind};
 use slint::{ModelRc, VecModel};
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -33,6 +31,10 @@ pub fn run() {
 
     let layout = load_layout_config();
     let _ = save_layout_config(&layout);
+    let label_width_px = layout.label_width_px() as i32;
+    let label_height_px = layout.label_height_px() as i32;
+    let label_width_mm = layout.label_size.width_mm.to_string();
+    let label_height_mm = layout.label_size.height_mm.to_string();
 
     let preview_model = Rc::new(VecModel::from(Vec::<PreviewElementData>::new()));
     let state: SharedEditorState = Rc::new(RefCell::new(EditorState {
@@ -44,8 +46,10 @@ pub fn run() {
 
     window.set_preview_elements(preview_model.into());
     window.set_decode_fields(ModelRc::new(VecModel::from(Vec::<DecodeFieldData>::new())));
-    window.set_label_width_px(LABEL_WIDTH_PX as i32);
-    window.set_label_height_px(LABEL_HEIGHT_PX as i32);
+    window.set_label_width_px(label_width_px);
+    window.set_label_height_px(label_height_px);
+    window.set_label_width_mm(label_width_mm.into());
+    window.set_label_height_mm(label_height_mm.into());
 
     init_project_models(&window, &proj);
     init_default_dates(&window);

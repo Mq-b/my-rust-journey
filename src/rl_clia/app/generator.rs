@@ -205,6 +205,8 @@ fn gen_reagent(
             &barcode,
             layout.page(PageKind::Reagent),
             &content,
+            layout.label_width_px(),
+            layout.label_height_px(),
         ));
     }
 
@@ -273,6 +275,8 @@ fn gen_calibration(
             &barcode,
             layout.page(PageKind::Calibration),
             &content,
+            layout.label_width_px(),
+            layout.label_height_px(),
         ));
     }
 
@@ -335,6 +339,8 @@ fn gen_consumable(window: &RLCLIAWindow, layout: &LayoutConfig) -> Result<Genera
             &barcode,
             layout.page(PageKind::Consumable),
             &content,
+            layout.label_width_px(),
+            layout.label_height_px(),
         ));
     }
 
@@ -408,6 +414,8 @@ fn gen_quality(
             &barcode,
             layout.page(PageKind::Quality),
             &content,
+            layout.label_width_px(),
+            layout.label_height_px(),
         ));
     }
 

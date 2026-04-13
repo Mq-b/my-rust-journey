@@ -1,8 +1,8 @@
 use crate::barcode::{gray_to_slint_image, LabelContent};
 use crate::config;
 use crate::layout::{
-    load_layout_config, save_layout_config, LayoutElement, LayoutElementKind, PageKind,
-    LABEL_HEIGHT, LABEL_WIDTH,
+    load_layout_config, save_layout_config, LayoutConfig, LayoutElement, LayoutElementKind,
+    PageKind,
 };
 use image::GrayImage;
 use slint::{ComponentHandle, Model};
@@ -22,7 +22,11 @@ pub(super) fn bind_layout_editor_callbacks(
     let state_load = state.clone();
     window.on_load_layout_page(move |page| {
         let window = weak.unwrap();
-        state_load.borrow_mut().layout = load_layout_config();
+        {
+            let mut editor = state_load.borrow_mut();
+            editor.layout = load_layout_config();
+            sync_label_size_window(&window, &editor.layout);
+        }
         refresh_editor_for_page(
             &window,
             &proj_load,
@@ -82,6 +86,39 @@ pub(super) fn bind_layout_editor_callbacks(
     });
 
     let weak = window.as_weak();
+    let proj_size = proj.clone();
+    let state_size = state.clone();
+    window.on_update_label_size(move |width, height| {
+        let window = weak.unwrap();
+        let Some(width_mm) = parse_label_mm(&width.to_string()) else {
+            return;
+        };
+        let Some(height_mm) = parse_label_mm(&height.to_string()) else {
+            return;
+        };
+
+        let current_page = PageKind::from_ui(&window.get_enc_page().to_string());
+        let changed = {
+            let mut editor = state_size.borrow_mut();
+            let changed = editor.layout.set_label_size_mm(width_mm, height_mm);
+            sync_label_canvas_size(&window, &editor.layout);
+            if changed {
+                if let Err(err) = save_layout_config(&editor.layout) {
+                    window.set_status(format!("布局保存失败: {err}").into());
+                    return;
+                }
+            }
+            changed
+        };
+        if !changed {
+            return;
+        }
+
+        refresh_editor_for_page(&window, &proj_size, &state_size, current_page);
+        window.set_status("标签尺寸已应用并写入配置文件".into());
+    });
+
+    let weak = window.as_weak();
     window.on_reset_layout_page(move |page| {
         let window = weak.unwrap();
         let page = PageKind::from_ui(&page.to_string());
@@ -127,6 +164,7 @@ pub(super) fn apply_preview_data(
 ) {
     let mut editor = state.borrow_mut();
     editor.active_page = page;
+    sync_label_canvas_size(window, &editor.layout);
     let elements = build_preview_elements(editor.layout.page(page), content);
     editor.preview_model.set_vec(elements);
     if let Some(image) = barcode {
@@ -196,6 +234,8 @@ fn adjust_layout_element(
     update: LayoutUpdate,
 ) {
     let mut editor = state.borrow_mut();
+    let label_w = editor.layout.label_width();
+    let label_h = editor.layout.label_height();
     let (x, y, width, height, font_size, bold) = {
         let Some(element) = editor.layout.page_mut(page).element_mut(id) else {
             return;
@@ -206,7 +246,7 @@ fn adjust_layout_element(
                 element.y += dy;
             }
         }
-        normalize_element(element);
+        normalize_element(element, label_w, label_h);
         (
             element.x,
             element.y,
@@ -249,6 +289,8 @@ fn adjust_current_element<F>(
     F: FnMut(&mut LayoutElement),
 {
     let mut editor = state.borrow_mut();
+    let label_w = editor.layout.label_width();
+    let label_h = editor.layout.label_height();
     let Some(selected) = editor.selected.clone() else {
         return;
     };
@@ -260,7 +302,7 @@ fn adjust_current_element<F>(
             return;
         };
         update(element);
-        normalize_element(element);
+        normalize_element(element, label_w, label_h);
         (
             element.x,
             element.y,
@@ -393,19 +435,36 @@ fn element_name(id: &str) -> &'static str {
     }
 }
 
-fn normalize_element(element: &mut LayoutElement) {
-    element.width = element.width.clamp(1.0, LABEL_WIDTH);
-    element.height = element.height.clamp(1.0, LABEL_HEIGHT);
+fn normalize_element(element: &mut LayoutElement, label_w: f32, label_h: f32) {
+    element.width = element.width.clamp(1.0, label_w);
+    element.height = element.height.clamp(1.0, label_h);
     if element.kind == LayoutElementKind::Text {
         element.font_size = element.font_size.clamp(1.0, 200.0);
     } else {
         element.font_size = 0.0;
         element.bold = false;
     }
-    element.x = element.x.clamp(0.0, (LABEL_WIDTH - element.width).max(0.0));
-    element.y = element
-        .y
-        .clamp(0.0, (LABEL_HEIGHT - element.height).max(0.0));
+    element.x = element.x.clamp(0.0, (label_w - element.width).max(0.0));
+    element.y = element.y.clamp(0.0, (label_h - element.height).max(0.0));
+}
+
+fn parse_label_mm(value: &str) -> Option<u32> {
+    let parsed = value.trim().parse::<f32>().ok()?;
+    if !parsed.is_finite() {
+        return None;
+    }
+    Some(parsed.round().max(1.0) as u32)
+}
+
+fn sync_label_size_window(window: &RLCLIAWindow, layout: &LayoutConfig) {
+    sync_label_canvas_size(window, layout);
+    window.set_label_width_mm(layout.label_size.width_mm.to_string().into());
+    window.set_label_height_mm(layout.label_size.height_mm.to_string().into());
+}
+
+fn sync_label_canvas_size(window: &RLCLIAWindow, layout: &LayoutConfig) {
+    window.set_label_width_px(layout.label_width_px() as i32);
+    window.set_label_height_px(layout.label_height_px() as i32);
 }
 
 fn format_number(value: f32) -> String {
