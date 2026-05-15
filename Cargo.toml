@@ -29,6 +29,10 @@ path = "src/LiteCrypt/main.rs"
 name = "RL-CLIA"
 path = "src/rl_clia/main.rs"
 
+[[bin]]
+name = "QC-Barcode"
+path = "src/QC-Barcode/main.rs"
+
 [dependencies]
 anyhow = "1.0.101"
 zxing-cpp = { version = "0.5.0", features = ["bundled", "image"] }
