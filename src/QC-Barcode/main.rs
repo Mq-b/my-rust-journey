@@ -11,10 +11,9 @@ slint::include_modules!();
 
 /// 获取配置文件路径 (assets/projects.json)
 fn config_path() -> PathBuf {
-    let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    path.push("assets");
-    path.push("projects.json");
-    path
+    let exe_path = std::env::current_exe().expect("无法获取可执行文件路径");
+    let exe_dir = exe_path.parent().expect("无法获取可执行文件目录");
+    exe_dir.join("assets").join("projects.json")
 }
 
 /// 加载项目配置
