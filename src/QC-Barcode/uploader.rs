@@ -1,9 +1,10 @@
 use serde::Serialize;
+use std::sync::OnceLock;
 use std::time::Duration;
-use winreg::RegKey;
-use winreg::enums::*;
 
 const OBFUSCATED_URL: &[u8] = b"Z29sLWVkb2NyYWItY3EvaXBhLzAwMDM6bW9jLnJldnJlcy1haWxlci8vOnNwdHRo";
+
+static MACHINE_ID: OnceLock<String> = OnceLock::new();
 
 #[derive(Debug, Serialize)]
 struct QcBarcodeLog {
@@ -26,20 +27,69 @@ fn decode_url() -> String {
         .decode(OBFUSCATED_URL)
         .unwrap_or_default();
     let s = String::from_utf8_lossy(&decoded);
-    // 反转字符串得到原始 URL
     s.chars().rev().collect()
 }
 
-/// 获取 Windows MachineGuid 作为硬件唯一标识
-pub fn get_machine_id() -> String {
-    let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
-    if let Ok(key) = hklm.open_subkey("SOFTWARE\\Microsoft\\Cryptography") {
-        if let Ok(guid) = key.get_value::<String, _>("MachineGuid") {
-            return guid;
+/// 启动时异步初始化机器 ID
+pub fn init() {
+    std::thread::spawn(|| {
+        let id = get_machine_id_raw();
+        let _ = MACHINE_ID.set(id);
+    });
+}
+
+/// 获取机器唯一标识（跨平台）
+fn get_machine_id_raw() -> String {
+    #[cfg(target_os = "windows")]
+    {
+        // Windows: 使用 wmic 获取主板序列号
+        if let Ok(output) = std::process::Command::new("wmic")
+            .args(["baseboard", "get", "serialnumber"])
+            .output()
+        {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            let serial = stdout
+                .lines()
+                .skip(1)
+                .next()
+                .map(|s| s.trim())
+                .filter(|s| !s.is_empty() && *s != "To Be Filled By O.E.M.")
+                .unwrap_or("");
+            if !serial.is_empty() {
+                return serial.to_string();
+            }
         }
+        std::env::var("USERNAME").unwrap_or_else(|_| "unknown".to_string())
     }
-    // fallback: 使用随机 UUID（每次启动不同）
-    uuid::Uuid::new_v4().to_string()
+
+    #[cfg(target_os = "linux")]
+    {
+        // Linux: 尝试读取 board_serial
+        if let Ok(serial) = std::fs::read_to_string("/sys/class/dmi/id/board_serial") {
+            let serial = serial.trim();
+            if !serial.is_empty() && serial != "To Be Filled By O.E.M." {
+                return serial.to_string();
+            }
+        }
+        // fallback: 使用 /etc/machine-id
+        if let Ok(id) = std::fs::read_to_string("/etc/machine-id") {
+            let id = id.trim();
+            if !id.is_empty() {
+                return id.to_string();
+            }
+        }
+        std::env::var("USER").unwrap_or_else(|_| "unknown".to_string())
+    }
+
+    #[cfg(not(any(target_os = "windows", target_os = "linux")))]
+    {
+        "unknown".to_string()
+    }
+}
+
+/// 获取机器 ID（读取缓存）
+fn get_machine_id() -> &'static str {
+    MACHINE_ID.get().map(|s| s.as_str()).unwrap_or("unknown")
 }
 
 /// 上传解码日志到服务器
@@ -53,7 +103,7 @@ pub fn upload_log(
     error_msg: &str,
 ) {
     let log = QcBarcodeLog {
-        user: get_machine_id(),
+        user: get_machine_id().to_string(),
         barcode: barcode.chars().take(6).collect(),
         success: if success { 1 } else { 0 },
         project_id,
@@ -65,7 +115,6 @@ pub fn upload_log(
         photo_path: String::new(),
     };
 
-    // 异步发送，不阻塞 UI
     std::thread::spawn(move || {
         let api_url = decode_url();
 

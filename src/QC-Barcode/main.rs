@@ -52,6 +52,7 @@ fn to_model(projects: &HashMap<u8, String>) -> Vec<ProjectEntry> {
 }
 
 fn main() -> Result<(), slint::PlatformError> {
+    uploader::init();
     let app = MainWindow::new()?;
     let projects = Arc::new(Mutex::new(load_projects()));
 
