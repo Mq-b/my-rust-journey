@@ -1,6 +1,7 @@
 #![windows_subsystem = "windows"]
 
 mod barcode;
+mod uploader;
 
 use slint::Model;
 use std::collections::HashMap;
@@ -141,7 +142,7 @@ fn main() -> Result<(), slint::PlatformError> {
             let projs = projs.lock().unwrap();
             match barcode::QcBarcode::parse(input.as_str()) {
                 Ok(qc) => {
-                    app.set_raw_barcode(input);
+                    app.set_raw_barcode(input.clone());
                     app.set_project_id(qc.project_id.to_string().into());
                     app.set_lot_number(qc.lot_number.to_string().into());
                     app.set_level(format!("Level {}", qc.level).into());
@@ -151,16 +152,29 @@ fn main() -> Result<(), slint::PlatformError> {
                         .get(&qc.project_id)
                         .map(|s| s.clone().into())
                         .unwrap_or_else(|| "未配置".into());
-                    app.set_project_name(name);
+                    app.set_project_name(name.clone());
+                    // 上传解码日志
+                    uploader::upload_log(
+                        input.as_str(),
+                        true,
+                        qc.project_id,
+                        name.as_str(),
+                        qc.lot_number,
+                        qc.level,
+                        "",
+                    );
                 }
                 Err(e) => {
+                    let err_msg = e.to_string();
                     app.set_is_error(true);
-                    app.set_error_message(e.to_string().into());
+                    app.set_error_message(err_msg.clone().into());
                     app.set_raw_barcode("--".into());
                     app.set_project_id("--".into());
                     app.set_project_name("--".into());
                     app.set_lot_number("--".into());
                     app.set_level("--".into());
+                    // 上传失败日志
+                    uploader::upload_log(input.as_str(), false, 0, "", 0, 0, &err_msg);
                 }
             }
         });
